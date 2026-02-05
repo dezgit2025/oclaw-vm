@@ -3,7 +3,7 @@
 - **Name:** Poonie
 - **What to call them:** Poonie
 - **Pronouns:** 
-- **Timezone:** UTC
+- **Timezone:** America/New_York (ET)
 - **Notes:** Prefers a casual, engaging, funny vibe.
 
 ## Context
