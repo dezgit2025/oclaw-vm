@@ -55,8 +55,20 @@ def main():
             info = json.load(f)
 
         flow = InstalledAppFlow.from_client_config(info, SCOPES)
+
         if args.no_local_server:
-            creds = flow.run_console()
+            # Headless-friendly flow: print auth URL, user pastes code.
+            auth_url, _ = flow.authorization_url(
+                access_type="offline",
+                include_granted_scopes="true",
+                prompt="consent",
+            )
+            print("Open this URL in a browser, approve, then paste the code here:\n")
+            print(auth_url)
+            print("")
+            code = input("Code: ").strip()
+            flow.fetch_token(code=code)
+            creds = flow.credentials
         else:
             creds = flow.run_local_server(port=0)
 
