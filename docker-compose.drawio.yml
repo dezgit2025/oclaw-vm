@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  next-ai-drawio:
+    image: ghcr.io/dayuanjiang/next-ai-draw-io:latest
+    container_name: next-ai-drawio
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - AI_PROVIDER=${AI_PROVIDER:-anthropic}
+      - AI_MODEL=${AI_MODEL:-claude-sonnet-4-5}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# To use:
+# 1. Copy .env.drawio.example to .env.drawio
+# 2. Edit .env.drawio with your API key
+# 3. Run: docker-compose -f docker-compose.drawio.yml --env-file .env.drawio up -d

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  foundry-gpt52-entra:
+    build:
+      context: ./docker/foundry-gpt52
+    container_name: foundry-gpt52-entra
+    environment:
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-https://pitchbook-resource.openai.azure.com/}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-5.2}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-12-01-preview}
+      - MAX_COMPLETION_TOKENS=${MAX_COMPLETION_TOKENS:-512}
+
+      # Entra ID auth options for DefaultAzureCredential:
+      # - Service principal:
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+
+      # - Workload identity / federated token:
+      - AZURE_FEDERATED_TOKEN_FILE=${AZURE_FEDERATED_TOKEN_FILE:-}
+
+      # - Managed identity on Azure compute typically requires no env vars.

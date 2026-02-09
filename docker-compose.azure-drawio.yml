@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  next-ai-drawio-azure:
+    image: ghcr.io/dayuanjiang/next-ai-draw-io:latest
+    container_name: next-ai-drawio-azure
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Azure OpenAI Configuration
+      - AI_PROVIDER=azure
+      - AI_MODEL=${AI_MODEL:-gpt-5.2}
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - AZURE_BASE_URL=${AZURE_BASE_URL:-https://pitchbook-resource.openai.azure.com}
+
+      # Optional: Control output determinism (0=deterministic, 1=creative)
+      - TEMPERATURE=${TEMPERATURE:-0}
+
+      # Optional: Reasoning configuration for advanced models
+      # - AZURE_REASONING_EFFORT=medium  # low, medium, high
+      # - AZURE_REASONING_SUMMARY=brief   # none, brief, detailed
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# To use:
+# 1. Copy .env.azure-drawio.example to .env.azure-drawio
+# 2. Edit .env.azure-drawio if needed (default values already set for your Azure resource)
+# 3. Run: docker-compose -f docker-compose.azure-drawio.yml --env-file .env.azure-drawio up -d

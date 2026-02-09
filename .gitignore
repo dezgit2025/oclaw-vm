@@ -1,0 +1,13 @@
+# Secrets and tokens
+credentials.json
+token.json
+.env.*
+!.env.*.example
+
+# Python
+__pycache__/
+venv/
+*.pyc
+
+# OS
+.DS_Store
