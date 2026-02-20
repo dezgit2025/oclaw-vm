@@ -9,21 +9,23 @@ Management tools, scripts, and documentation for the **oclaw** Azure VM infrastr
 | Resource | Value |
 |----------|-------|
 | Resource Group | `RG_OCLAW2026` |
-| Linux VM | `oclaw2026linux` |
+| Linux VM | `oclaw2026linux` (Standard_D4s_v3 — 4 vCPU / 16 GiB) |
 | Windows VM | `oclaw-admin-win11m` |
 | VM NSG | `oclaw2026linux-nsg` |
 | Subnet NSG | `vnet-eastus2-snet-eastus2-1-nsg-eastus2` |
 | Region | East US 2 |
-| SSH Host | `oclaw` (defined in `~/.ssh/config`) |
+| SSH Host | `oclaw` (defined in `~/.ssh/config`, uses Tailscale IP) |
 | SSH User | `desazure` |
 | SSH Key | `~/.ssh/oclaw-key-v4.pem` |
-| VM IP | `20.81.190.88` |
+| VM Public IP | `20.81.190.88` (fallback only — use `oclaw-public` SSH alias) |
+| VM Tailscale IP | `100.111.79.93` (primary — used by `oclaw` SSH alias) |
 
 ## Key Directories
 
 | Path | Purpose |
 |------|---------|
 | `manage-oclaw/` | SSH tunnel manager, NSG setup script, OAuth docs |
+| `manage-oclaw/opslog/` | Operational incident logs and breaking-change fixes |
 | `docker/` | Docker-related configs |
 | `venv/` | Local Python virtual environment |
 
@@ -33,15 +35,14 @@ These are the primary operational scripts. See `manage-oclaw/README.md` for full
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `check-setup-nsg-for-oclaw-ssh.py` | Detects public IP, creates/updates NSG rules on both subnet + VM NSGs, tests SSH | Run when IP changes or before connecting |
-| `create-manage-tunnel-oclaw.py` | Manages SSH tunnel (ports 18792-18795) | `start` / `stop` / `restart` / `status` |
+| `check-setup-nsg-for-oclaw-ssh.py` | Detects public IP, creates/updates NSG rules on both subnet + VM NSGs, tests SSH | **Fallback only** — not needed with Tailscale |
+| `create-manage-tunnel-oclaw.py` | Manages SSH tunnel (ports 18792-18797) | `start` / `stop` / `restart` / `status` |
 
 ### Typical Workflow
 
 ```bash
 cd manage-oclaw/
-./check-setup-nsg-for-oclaw-ssh.py    # ensure NSG allows SSH from current IP
-./create-manage-tunnel-oclaw.py start  # start tunnel in background
+./create-manage-tunnel-oclaw.py start  # start tunnel (SSH goes over Tailscale — no NSG step)
 ```
 
 ## SSH Tunnel Ports
@@ -52,6 +53,8 @@ cd manage-oclaw/
 | 18793 | gdrive auth/services |
 | 18794 | Google OAuth redirect (Drive) |
 | 18795 | Google OAuth redirect (Docs) |
+| 18796 | Google OAuth redirect (Sheets) |
+| 18797 | Google OAuth redirect (Calendar) |
 
 ## VM Paths (on oclaw2026linux)
 
@@ -64,12 +67,75 @@ cd manage-oclaw/
 | `~/.openclaw/workspace/skills/gdrive-openclawshared/scripts/auth.py` | OAuth auth script |
 | `~/.openclaw/workspace/run-gdrive-auth.sh` | Shortcut to run the auth script |
 
-## NSG Rules
+## Tailscale
+
+SSH to the VM uses Tailscale (WireGuard mesh) instead of the public IP. This eliminates the need for NSG rule management — Tailscale uses outbound-only connections, so no inbound firewall rules are required. Tailscale reconnects automatically after VM restart.
+
+| Component | Value |
+|-----------|-------|
+| VM Tailscale IP | `100.111.79.93` |
+| Mac Tailscale IP | `100.85.14.32` |
+| Exit node | `chromeos-nissa` (`100.124.62.63`) — residential IP egress |
+| SSH alias | `oclaw` → Tailscale IP; `oclaw-public` → public IP (fallback) |
+| Tailscale version (VM) | 1.94.2 |
+
+### Tailscale ACLs
+
+Managed at https://login.tailscale.com/admin/acls. Current policy:
+
+| Source | Destination | Allowed |
+|--------|-------------|---------|
+| MacBook | oclaw | Yes — all ports (SSH, admin) |
+| oclaw | chromeos-nissa | Yes — exit node handshake |
+| MacBook / oclaw | Internet (via exit node) | Yes |
+| oclaw | MacBook | **Blocked** — deny by default |
+| iPhone | oclaw | **Blocked** — deny by default |
+
+### Exit Node (Residential IP Egress)
+
+The VM routes internet traffic through `chromeos-nissa` (Android/ChromeOS) to egress from a residential IP (`108.29.69.37`). This avoids 403 blocks that many services apply to Azure datacenter IPs.
+
+**Failover watchdog** runs every 2 min via cron:
+- Checks if exit node is reachable (`tailscale ping`)
+- After 2 consecutive failures → clears exit node (falls back to Azure native egress)
+- When exit node recovers → re-enables residential egress
+- Script: `~/.openclaw/workspace/ops/watchdog/tailscale_egress_watchdog.py`
+- State: `~/.local/state/openclaw/tailscale-egress-watchdog.state`
+- Logs: `~/.openclaw/logs/tailscale-egress-watchdog/YYYY-MM-DD.log`
+
+**Quick checks:**
+
+```bash
+# Current egress IP
+ssh oclaw "curl -s ifconfig.me"
+
+# Watchdog state
+ssh oclaw "cat ~/.local/state/openclaw/tailscale-egress-watchdog.state"
+
+# Tailscale status
+ssh oclaw "tailscale status"
+```
+
+**Important:** The chromeos-nissa exit node must be powered on and awake. If it sleeps, the watchdog will fail over to Azure egress automatically.
+
+### Gateway Tailscale Mode
+
+The openclaw gateway has its own `tailscale.mode` setting in `~/.openclaw/openclaw.json`. This is a **separate concern** from SSH-over-Tailscale and exit node routing. Keep it set to `"mode": "off", "resetOnExit": false`. See [opslog](manage-oclaw/opslog/2026-02-20-gateway-crash-tailscale-mode-invalid.md) for what happens if it gets changed.
+
+## NSG Rules (Fallback Only)
+
+**Not needed for normal operations** — Tailscale bypasses NSG entirely.
+
+Only run the NSG script if Tailscale is down and you need emergency SSH via the public IP:
+
+```bash
+./manage-oclaw/check-setup-nsg-for-oclaw-ssh.py    # creates AllowSSH-MyIP rules
+ssh oclaw-public "hostname"                          # uses public IP alias
+```
 
 - Rule name: `AllowSSH-MyIP` (priority 100)
 - Applied to both subnet NSG and VM NSG
-- A JIT deny rule exists at priority 4096 -- our rule at 100 takes precedence
-- NSG rules may be cleared when the VM is deallocated; re-run `check-setup-nsg-for-oclaw-ssh.py` after starting a deallocated VM
+- NSG rules get cleared on VM deallocation
 
 ## VM Auto-Shutdown & Startup
 
@@ -78,8 +144,97 @@ The VM auto-shuts down at ~11 PM nightly. When the user says "turn on oclaw VM" 
 **Quick reference** (Azure CLI is installed, `az login` already done):
 
 1. `az vm start --name oclaw2026linux --resource-group RG_OCLAW2026`
-2. `./manage-oclaw/check-setup-nsg-for-oclaw-ssh.py` (NSG rules get cleared on deallocation)
-3. `./manage-oclaw/create-manage-tunnel-oclaw.py start`
+2. `./manage-oclaw/create-manage-tunnel-oclaw.py start`
+
+No NSG step — Tailscale reconnects automatically on boot.
+
+## Check oclaw Gateway
+
+The gateway is monitored by a lightweight watchdog cron job (no LLM). Full details: **[manage-oclaw/check_clawbot_gateway_test_ping_every_5_min_cron_.md](manage-oclaw/check_clawbot_gateway_test_ping_every_5_min_cron_.md)**
+
+**Quick checks:**
+
+```bash
+# Gateway status
+ssh oclaw "systemctl --user status openclaw-gateway.service --no-pager"
+
+# Watchdog logs (today)
+ssh oclaw "cat ~/.openclaw/logs/gateway-watchdog/$(date -u +%Y-%m-%d).log"
+
+# Watchdog state (fail count + last restart)
+ssh oclaw "cat ~/.local/state/openclaw/gateway-watchdog.state"
+```
+
+**How it works:** Cron runs every 5 min → checks systemd unit + TCP port 18789 → restarts after 2 consecutive failures (rate-limited to once per 30 min) → logs to `~/.openclaw/logs/gateway-watchdog/`.
+
+**Restart gateway manually:**
+
+```bash
+ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"
+```
+
+This script restarts `openclaw-gateway.service` via systemd (user unit), logs timestamps, and confirms the service is active after restart.
+
+## Google OAuth Reauth
+
+**Trigger:** When user says "reauth google", "google reauth", "refresh google tokens", or similar.
+
+**Prerequisites:** VM must be running and tunnel connected (port 18793 needed).
+
+**Run from laptop:**
+
+```bash
+echo "Y" | ./google-reauth/laptop_google_reauth.sh oclaw assistantdesi@gmail.com
+```
+
+This calls the VM-side script at `/home/desazure/.openclaw/workspace/ops/google-auth/google_reauth.sh` which re-auths **all 6 Google services** in one shot:
+
+| Service | Token Path (on VM) |
+|---------|--------------------|
+| Gmail | `~/.config/openclaw-gmail/token-assistantdesi_gmail_com.json` |
+| GDrive | `~/.config/openclaw-gdrive/token-openclawshared.json` |
+| GDocs | `~/.config/openclaw-gdrive/token-docs-openclawshared.json` |
+| GSheets | `~/.config/openclaw-gdrive/token-sheets-openclawshared.json` |
+| GCal (read) | `~/.config/openclaw-gcal/token-readonly.json` |
+| GCal (write) | `~/.config/openclaw-gcal/token-write.json` |
+
+**After reauth**, optionally run the audit:
+```bash
+ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/google-auth/audit_google_oauth.py"
+```
+
+## Known Patches on VM (will be lost on npm update)
+
+**No active patches.** As of v2026.2.17, `pollIntervalMs` is natively supported in the telegram Zod schema. The manual schema patch from the earlier version is no longer needed.
+
+| Patch | Date | Status | Opslog |
+|-------|------|--------|--------|
+| ~~Add `pollIntervalMs` to telegram Zod schema~~ | 2026-02-20 | **Resolved** — native in v2026.2.17 | [opslog](manage-oclaw/opslog/2026-02-20-fix-telegram-pollIntervalMs-schema.md) |
+
+Current telegram config includes `"pollIntervalMs": 10000` (10 seconds).
+
+## Foundry Proxy Fix
+
+The Foundry MI proxy (`server.mjs`) strips `foundry/` prefix from model names before forwarding to Azure. The monitor cron job uses a static script instead of LLM-generated bash. Full details: **[manage-oclaw/fix-foundry-model-proxy.md](manage-oclaw/fix-foundry-model-proxy.md)**
+
+## Starbucks WiFi Ops (Rate-Limit Bypass)
+
+Docs and test results for bypassing Starbucks WiFi traffic shaping when working remotely. Full findings: **[starbucks_ops/rate-limit-bypass/findings-2026-02-19.md](starbucks_ops/rate-limit-bypass/findings-2026-02-19.md)**
+
+**Key findings (2026-02-19):**
+- Starbucks shapes **per-device (MAC address)** — ~15 Mbps cap per device to Azure
+- Not per-port, per-protocol, or per-flow — tested SSH on ports 22/443/993/123, WireGuard UDP, ByeDPI packet manipulation
+- Multiple parallel streams make it worse (4 streams = 6.7 Mbps vs 1 stream = 15 Mbps)
+- VM itself has ~408 Mbps to Cloudflare — bottleneck is entirely the WiFi link
+
+**Viable bypass: Multi-device bonding**
+- Add a second device with different MAC → gets its own ~15 Mbps session
+- **Android USB tether** passes WiFi through (iOS does NOT — only shares cellular)
+- **GL.iNet travel router** ($30-70) with spoofed MAC + USB-C Ethernet to Mac
+- Bond interfaces with `dispatch-proxy` (npm) → SOCKS proxy round-robins across links
+- USB WiFi adapters do NOT work on Apple Silicon (no kernel extension support)
+
+**TODO:** Test Android WiFi tethering + bonding at Starbucks
 
 ## Sensitive Files (do not commit)
 
