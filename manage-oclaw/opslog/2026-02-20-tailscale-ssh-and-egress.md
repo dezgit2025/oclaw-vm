@@ -63,6 +63,7 @@ az vm start --name oclaw2026linux --resource-group RG_OCLAW2026
 - **chromeos-nissa must be powered on and awake** for residential egress. If it sleeps, the watchdog fails over to Azure egress (~4 min window)
 - **`tailscale ping` doesn't work when exit node is sleeping** — returns "timed out" with rc=0 and "no reply". Ping works fine when device is awake
 - **Gateway `tailscale.mode` is unrelated** — keep it `"off"` in `openclaw.json`. Do not confuse with SSH/egress Tailscale usage
+- **Exit node breaks Azure IMDS** — Tailscale routes `169.254.169.254` through the exit node tunnel. An ip rule exception (`priority 100, lookup main`) is needed to keep IMDS on `eth0`. Without this, the Foundry MI proxy can't get tokens and all LLM calls fail with 500. See [opslog](2026-02-20-tailscale-exit-node-breaks-imds.md)
 
 ## Files Modified
 

@@ -118,6 +118,16 @@ ssh oclaw "tailscale status"
 
 **Important:** The chromeos-nissa exit node must be powered on and awake. If it sleeps, the watchdog will fail over to Azure egress automatically.
 
+### IMDS Route Exception
+
+The exit node routes all traffic — including Azure IMDS (`169.254.169.254`). An ip rule exception forces IMDS through `eth0`:
+
+```bash
+sudo ip rule add to 169.254.169.254 lookup main priority 100
+```
+
+This is persisted via `/etc/networkd-dispatcher/routable.d/50-imds-route.sh`. **Without this, the Foundry MI proxy cannot get tokens and all LLM calls fail with 500.** See [opslog](manage-oclaw/opslog/2026-02-20-tailscale-exit-node-breaks-imds.md).
+
 ### Gateway Tailscale Mode
 
 The openclaw gateway has its own `tailscale.mode` setting in `~/.openclaw/openclaw.json`. This is a **separate concern** from SSH-over-Tailscale and exit node routing. Keep it set to `"mode": "off", "resetOnExit": false`. See [opslog](manage-oclaw/opslog/2026-02-20-gateway-crash-tailscale-mode-invalid.md) for what happens if it gets changed.
