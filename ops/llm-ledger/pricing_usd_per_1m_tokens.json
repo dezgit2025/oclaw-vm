@@ -1,0 +1,21 @@
+{
+  "notes": {
+    "source": "https://azure.microsoft.com/en-us/pricing/details/azure-openai/",
+    "assumption": "Global Standard pricing unless overridden",
+    "updated_utc": "2026-02-17"
+  },
+  "models": {
+    "foundry/gpt-4.1-mini": {
+      "input": 0.40,
+      "output": 1.60,
+      "cached_input": 0.10,
+      "batch_input": 0.20,
+      "batch_output": 0.80
+    },
+    "foundry/Kimi-K2.5": {
+      "input": null,
+      "output": null,
+      "notes": "Not on Azure OpenAI pricing page; set manually if you want cost estimates for this model."
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{"ts_utc":"2026-02-10T03:00:00Z","sessionKey":"agent:main:main","model":"github-copilot/gpt-5.2","tokens_in":34000,"tokens_out":83}
+{"ts_utc": "2026-02-11T03:00:00Z", "sessionKey": "agent:main:main", "model": "github-copilot/gpt-5.2", "tokens_in": 46000, "tokens_out": 83}
+{"ts_utc":"2026-02-12T03:00:22Z","sessionKey":"agent:main:main","model":"github-copilot/gpt-5.2","tokens_in":79000,"tokens_out":7}
+{"ts_utc": "2026-02-13T03:00:26Z", "sessionKey": "agent:main:main", "model": "github-copilot/gpt-5.2", "tokens_in": 85000, "tokens_out": 119}
+{"ts_utc": "2026-02-14T03:00:23Z", "sessionKey": "agent:main:main", "model": "github-copilot/gpt-5.2", "tokens_in": 298000, "tokens_out": 2600}
+{"ts_utc":"2026-02-15T03:00:00Z","sessionKey":"agent:main:main","model":"github-copilot/gpt-5.2","tokens_in":54000,"tokens_out":648}
+{"ts_utc": "2026-02-16T03:00:34Z", "sessionKey": "agent:main:main", "model": "github-copilot/gpt-5.2", "tokens_in": 49000, "tokens_out": 535}
+{"ts_utc":"2026-02-17T03:00:37Z","sessionKey":"agent:main:main","model":"github-copilot/gpt-5.2","tokens_in":46000,"tokens_out":152}

@@ -1,0 +1,84 @@
+{
+  "items": {
+    "365_whole_foods_grass_fed_beef_jerky_original": {
+      "names": [
+        "365 beef jerky",
+        "365 grass-fed beef jerky",
+        "365 whole foods grass-fed beef jerky (original)",
+        "whole foods beef jerky"
+      ],
+      "notes": "exact",
+      "nutrition": {
+        "alcohol_g": 0.0,
+        "caffeine_mg": 0.0,
+        "calories_kcal": 80.0,
+        "carbs_g": 7.0,
+        "fat_g": 1.0,
+        "fiber_g": 0.0,
+        "protein_g": 11.0,
+        "sodium_mg": 410.0,
+        "sugar_g": 5.0
+      },
+      "serving": "1 oz (28g)"
+    },
+    "applegate_organics_black_forest_uncured_ham": {
+      "names": [
+        "applegate black forest uncured ham",
+        "applegate organics black forest uncured ham",
+        "black forest uncured ham"
+      ],
+      "notes": "exact",
+      "nutrition": {
+        "alcohol_g": 0.0,
+        "caffeine_mg": 0.0,
+        "calories_kcal": 70.0,
+        "carbs_g": 1.0,
+        "fat_g": 3.0,
+        "fiber_g": 0.0,
+        "protein_g": 11.0,
+        "sodium_mg": 410.0,
+        "sugar_g": 1.0
+      },
+      "serving": "2 slices (55 g)"
+    },
+    "brown_sugar_packet": {
+      "names": [
+        "brown sugar packet",
+        "raw sugar packet",
+        "starbucks brown sugar packet"
+      ],
+      "notes": "exact",
+      "nutrition": {
+        "alcohol_g": 0.0,
+        "caffeine_mg": 0.0,
+        "calories_kcal": 15.0,
+        "carbs_g": 4.0,
+        "fat_g": 0.0,
+        "fiber_g": 0.0,
+        "protein_g": 0.0,
+        "sodium_mg": 0.0,
+        "sugar_g": 4.0
+      },
+      "serving": "1 packet"
+    },
+    "starbucks_grilled_cheese": {
+      "names": [
+        "starbucks grilled cheese"
+      ],
+      "notes": "exact",
+      "nutrition": {
+        "alcohol_g": 0.0,
+        "caffeine_mg": 0.0,
+        "calories_kcal": 520.0,
+        "carbs_g": 47.0,
+        "fat_g": 28.0,
+        "fiber_g": 2.0,
+        "protein_g": 19.0,
+        "sodium_mg": 1180.0,
+        "sugar_g": 3.0
+      },
+      "serving": "1 sandwich"
+    }
+  },
+  "version": 1
+}

@@ -1,0 +1,5 @@
+ALERT: ClickUp alerts (frequent; 2026-02-10 18:16 UTC):
+- [due_soon] Book hotel in Portugal (due 2026-02-10 20:00 UTC)
+  https://app.clickup.com/t/86dzqn5gm
+- [due_soon] Review: geo-location tracking architecture plan (5 approaches) (due 2026-02-10 20:00 UTC)
+  https://app.clickup.com/t/86dzpm7ca

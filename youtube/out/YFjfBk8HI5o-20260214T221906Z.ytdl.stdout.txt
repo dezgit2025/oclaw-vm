@@ -1,0 +1,4 @@
+[youtube] Extracting URL: https://www.youtube.com/watch?v=YFjfBk8HI5o&t=139s
+[youtube] YFjfBk8HI5o: Downloading webpage
+[youtube] YFjfBk8HI5o: Downloading android vr player API JSON
+[youtube] YFjfBk8HI5o: Downloading web safari player API JSON

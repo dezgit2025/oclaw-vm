@@ -18,7 +18,7 @@ def ensure_parent(p: Path):
 
 def main():
     ap = argparse.ArgumentParser(description="OAuth auth for Gmail draft creation (gmail.compose scope).")
-    ap.add_argument("--account", required=True, help="Gmail address (for naming token file).")
+    ap.add_argument("--account", required=True, help="Gmail address (used to name the token file by default).")
     ap.add_argument(
         "--config-dir",
         default=str(Path.home() / ".config" / "openclaw-gmail"),
@@ -34,12 +34,19 @@ def main():
         default=None,
         help="Path to token.json (defaults to <config-dir>/token.json)",
     )
-    ap.add_argument("--no-local-server", action="store_true", help="Use console flow (for headless servers)")
+    ap.add_argument("--port", type=int, default=18793, help="Local server port for OAuth redirect (loopback/tunnel flow)")
+    ap.add_argument("--no-local-server", action="store_true", help="(Deprecated) Console code-paste flow; Google often blocks this. Prefer SSH tunnel + --port.")
+    ap.add_argument("--print-url-only", action="store_true", help="Print URL then exit (for testing)")
     args = ap.parse_args()
 
     config_dir = Path(args.config_dir)
     creds_path = Path(args.creds) if args.creds else (config_dir / "credentials.json")
-    token_path = Path(args.token) if args.token else (config_dir / "token.json")
+    def safe_name(s: str) -> str:
+        return "".join(c if (c.isalnum() or c in "-_") else "_" for c in s)
+
+    default_token = config_dir / f"token-{safe_name(args.account)}.json"
+    legacy_token = config_dir / "token.json"
+    token_path = Path(args.token) if args.token else (default_token if default_token.exists() or not legacy_token.exists() else legacy_token)
 
     if not creds_path.exists():
         raise SystemExit(f"Missing credentials.json at: {creds_path}")
@@ -57,7 +64,8 @@ def main():
         flow = InstalledAppFlow.from_client_config(info, SCOPES)
 
         if args.no_local_server:
-            # Headless-friendly flow: print auth URL, user pastes code.
+            # NOTE: Google has largely deprecated OOB/"copy the code" flows.
+            # This path may fail with missing/invalid redirect_uri.
             auth_url, _ = flow.authorization_url(
                 access_type="offline",
                 include_granted_scopes="true",
@@ -66,17 +74,21 @@ def main():
             print("Open this URL in a browser, approve, then paste the code here:\n")
             print(auth_url)
             print("")
+            if args.print_url_only:
+                raise SystemExit("PRINT_URL_ONLY")
             code = input("Code: ").strip()
             flow.fetch_token(code=code)
             creds = flow.credentials
         else:
-            creds = flow.run_local_server(port=0)
+            # Headless-friendly when paired with an SSH tunnel from your laptop:
+            # ssh -N -L <port>:127.0.0.1:<port> <vm>
+            creds = flow.run_local_server(host="127.0.0.1", port=args.port, open_browser=False)
 
     ensure_parent(token_path)
     with open(token_path, "w", encoding="utf-8") as f:
         f.write(creds.to_json())
 
-    print(f"OK: wrote token to {token_path}")
+    print(f"OK: account={args.account} wrote token to {token_path}")
 
 
 if __name__ == "__main__":
