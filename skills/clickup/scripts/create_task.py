@@ -12,6 +12,7 @@ def main():
     ap.add_argument("--name", required=True)
     ap.add_argument("--description", default="")
     ap.add_argument("--due-ms", type=int, default=None, help="Due date in epoch milliseconds")
+    ap.add_argument("--due-date-time", action="store_true", help="Treat due-ms as an exact date+time (sets due_date_time=true)")
     ap.add_argument("--priority", type=int, default=None, help="1 urgent, 2 high, 3 normal, 4 low")
     ap.add_argument("--tags", default="", help="Comma-separated tags")
     ap.add_argument("--token-file", default=None)
@@ -26,6 +27,8 @@ def main():
     }
     if args.due_ms is not None:
         body["due_date"] = args.due_ms
+        if args.due_date_time:
+            body["due_date_time"] = True
     if args.priority is not None:
         body["priority"] = args.priority
     if args.tags:

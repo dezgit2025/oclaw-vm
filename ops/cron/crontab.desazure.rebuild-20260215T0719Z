@@ -1,0 +1,12 @@
+# OpenClaw session log GC (backup >5MB, truncate to ~3MB)
+TZ=America/New_York
+0 20 * * * /home/desazure/.openclaw/workspace/ops/session-gc/run_session_gc.sh
+
+# OpenClaw gateway watchdog (no LLM). Every 5 minutes.
+*/5 * * * * /home/desazure/.openclaw/workspace/ops/watchdog/run_gateway_watchdog.sh
+
+# Watchdog log cleanup: keep only 2 days of logs. Runs every ~3 days.
+17 3 */3 * * /home/desazure/.openclaw/workspace/ops/watchdog/run_clean_watchdog_logs.sh
+
+# Instagram out cleanup: keep only last 30 downloads. Runs Mondays 5pm ET.
+0 17 * * 1 /home/desazure/.openclaw/workspace/ops/instagram/run_cleanup_instagram_out.sh

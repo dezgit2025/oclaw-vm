@@ -1,0 +1,1 @@
+Attached is a Markdown note with the manual steps to (re)authenticate OpenClaw to use GitHub Copilot models (e.g. github-copilot/gpt-5.2), including the device flow and where the token is stored.

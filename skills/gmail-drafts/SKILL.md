@@ -14,9 +14,9 @@ This skill stores drafts in the user's Gmail account (it does **not** send).
 3) Place files on the Linux host:
 
 - `~/.config/openclaw-gmail/credentials.json`
-- (generated later) `~/.config/openclaw-gmail/token.json`
+- (generated later) `~/.config/openclaw-gmail/token-<account>.json` (falls back to legacy `token.json` if present)
 
-4) Run auth to create `token.json`:
+4) Run auth to create a token file (default: `token-<account>.json`):
 
 ```bash
 python3 /home/desazure/.openclaw/workspace/skills/gmail-drafts/scripts/auth.py \
@@ -32,6 +32,10 @@ python3 /home/desazure/.openclaw/workspace/skills/gmail-drafts/scripts/create_dr
   --subject "Subject" \
   --body-file /path/to/body.md
 ```
+
+Token selection:
+- Default: `~/.config/openclaw-gmail/token-<account>.json`
+- Fallback: `~/.config/openclaw-gmail/token.json` (legacy)
 
 ## Notes
 
