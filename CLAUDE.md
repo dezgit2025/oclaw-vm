@@ -205,11 +205,15 @@ ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/google-auth/audit_goog
 
 ## Known Patches on VM (will be lost on npm update)
 
-**No active patches.** As of v2026.2.17, `pollIntervalMs` is natively supported in the telegram Zod schema. The manual schema patch from the earlier version is no longer needed.
+The openclaw dist on the VM has been patched in-place. These patches are overwritten if `npm update -g openclaw` is run. Check `manage-oclaw/opslog/` for full details.
 
-| Patch | Date | Status | Opslog |
-|-------|------|--------|--------|
-| ~~Add `pollIntervalMs` to telegram Zod schema~~ | 2026-02-20 | **Resolved** — native in v2026.2.17 | [opslog](manage-oclaw/opslog/2026-02-20-fix-telegram-pollIntervalMs-schema.md) |
+| Patch | Date | Files (on VM under `~/.npm-global/lib/node_modules/openclaw/dist/`) | Opslog |
+|-------|------|------|--------|
+| Add `pollIntervalMs` to telegram Zod schema | 2026-02-20 | `config-BEpchvJh.js`, `config-BseT0AMx.js`, `config-CQx0LPGX.js`, `config-F0Q6PyfW.js` | [opslog](manage-oclaw/opslog/2026-02-20-fix-telegram-pollIntervalMs-schema.md) |
+
+**Note:** v2026.2.17 added `pollIntervalMs` to an internal schema (`z.number().int().nonnegative().optional()` at one level) but the `.strict()` telegram channel config schema still rejects it. The patch is still required. A non-fatal "Unrecognized key" warning from the pre-validation check still appears in logs but does not prevent startup.
+
+**After any openclaw update**, re-apply the patch: add `pollIntervalMs: z.number().int().positive().optional(),` after the `streamMode` enum block in each `config-*.js` file (search for `.default("partial"),` — unique to telegram schema).
 
 Current telegram config includes `"pollIntervalMs": 10000` (10 seconds).
 

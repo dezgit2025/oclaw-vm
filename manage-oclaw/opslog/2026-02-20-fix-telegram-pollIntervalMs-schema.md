@@ -57,12 +57,25 @@ This warning is **non-fatal** — the gateway starts and runs fine despite it.
 
 ## Caveats
 
-- ~~**npm update will overwrite this patch.**~~ **RESOLVED:** As of v2026.2.17, `pollIntervalMs` is natively supported in the telegram Zod schema (`z.number().int().nonnegative().optional()`). The manual patch is no longer needed.
-- The `openclaw doctor --fix` command (run during v2026.2.17 upgrade) removed `pollIntervalMs` from config; it was re-added afterward set to `10000` (10s).
+- **npm update will overwrite this patch.** Must re-apply after every `npm install -g openclaw` or `npm update -g openclaw`.
+- The `openclaw doctor --fix` command removes `pollIntervalMs` from config; re-add it afterward.
+- v2026.2.17 added `pollIntervalMs` to an internal schema level (`z.number().int().nonnegative().optional()`) but the `.strict()` channel config schema still rejects it — **the patch is still required**.
+- A non-fatal "Unrecognized key: pollIntervalMs" warning from the pre-validation check still appears in gateway logs. This does not prevent startup.
 
-## Resolution (2026-02-20)
+## v2026.2.17 Update (2026-02-20)
 
-Upgraded openclaw to **v2026.2.17** which includes `pollIntervalMs` natively in the telegram schema. The manual dist patches to `config-*.js` files are no longer present or needed. The config key `pollIntervalMs: 10000` is set in `openclaw.json` and validated without warnings.
+Upgraded openclaw to **v2026.2.17**. The npm install overwrote the old patched files (new hashes). The `.strict()` telegram channel config schema in v2026.2.17 **still does not include `pollIntervalMs`** — the patch had to be re-applied to the new `config-*.js` files.
+
+### Files re-patched (v2026.2.17)
+
+All under `/home/desazure/.npm-global/lib/node_modules/openclaw/dist/`:
+
+| File | Change |
+|------|--------|
+| `config-BEpchvJh.js` | Added `pollIntervalMs` to telegram schema |
+| `config-BseT0AMx.js` | Added `pollIntervalMs` to telegram schema |
+| `config-CQx0LPGX.js` | Added `pollIntervalMs` to telegram schema |
+| `config-F0Q6PyfW.js` | Added `pollIntervalMs` to telegram schema |
 
 ## Follow-up Changes (same session)
 
