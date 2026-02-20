@@ -11,3 +11,23 @@ venv/
 
 # OS
 .DS_Store
+
+# Ignore sensitive cookie files
+youtube/cookies_all.txt
+
+# Ignore logs and caches
+logs/
+*.log
+*.cache
+
+# Ignore database files
+*.db
+*.sqlite
+
+# Ignore tokens and secrets
+*.token.json
+*.key
+
+# Ignore temporary files
+*.tmp
+*.bak
