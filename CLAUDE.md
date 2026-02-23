@@ -287,7 +287,11 @@ The openclaw dist on the VM has been patched in-place. These patches are overwri
 
 **Note:** v2026.2.17 added `pollIntervalMs` to an internal schema (`z.number().int().nonnegative().optional()` at one level) but the `.strict()` telegram channel config schema still rejects it. The patch is still required. A non-fatal "Unrecognized key" warning from the pre-validation check still appears in logs but does not prevent startup.
 
-**After any openclaw update**, re-apply the patch: add `pollIntervalMs: z.number().int().positive().optional(),` after the `streamMode` enum block in each `config-*.js` file (search for `.default("partial"),` — unique to telegram schema).
+**After any openclaw update:**
+
+1. Re-apply the patch: add `pollIntervalMs: z.number().int().positive().optional(),` after the `streamMode` enum block in each `config-*.js` file (search for `.default("partial"),` — unique to telegram schema)
+2. Run `session_format_watchdog.py --force` to validate session format compatibility
+3. Restart gateway: `ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"`
 
 Current telegram config includes `"pollIntervalMs": 10000` (10 seconds).
 
@@ -318,6 +322,7 @@ Persistent cross-session memory for ClawBot, deployed 2026-02-23. Two injection 
 
 | Schedule (UTC) | Command | Purpose |
 |----------------|---------|---------|
+| `10 20 * * *` | `session_format_watchdog.py` | Validate session format before extraction |
 | `15 20 * * *` | `smart_extractor.py sweep` | Extract facts from new sessions |
 | `35 20 * * *` | `memory_bridge.py sync` | Sync SQLite → Azure AI Search |
 | `0 3 * * *` | Log rotation | Keep 7 days of extraction/sync logs |
@@ -330,6 +335,9 @@ ssh oclaw "source ~/.openclaw/workspace/skills/clawbot-memory/.venv/bin/activate
 
 # Test recall
 ssh oclaw "source ~/.openclaw/workspace/skills/clawbot-memory/.venv/bin/activate && cd ~/.openclaw/workspace/skills/clawbot-memory && python3 smart_extractor.py recall 'topic here' -k 5"
+
+# Session format watchdog
+ssh oclaw "cat ~/.local/state/openclaw/session-format-watchdog.state"
 
 # Hook status
 ssh oclaw "openclaw hooks list 2>/dev/null"
