@@ -55,11 +55,39 @@ def load_token() -> str:
     return CLICKUP_TOKEN_PATH.read_text().strip()
 
 
-def load_list_id() -> str:
+def load_list_ids() -> dict[str, str]:
+    """Return mapping of logical list names to ClickUp list IDs.
+
+    Backwards compatible:
+    - If default.json contains `listId`, that is treated as the primary `tasks` list.
+    - If it contains `listIds` (dict), those are used.
+    - If it contains `listIds` (list), they are treated as unnamed lists.
+    """
+
     if not CLICKUP_DEFAULT_PATH.exists():
         raise SystemExit(f"Missing ClickUp default.json at {CLICKUP_DEFAULT_PATH}")
+
     obj = json.loads(CLICKUP_DEFAULT_PATH.read_text())
-    return obj["listId"]
+
+    # Preferred: explicit mapping
+    li = obj.get("listIds")
+    if isinstance(li, dict) and li:
+        return {str(k): str(v) for k, v in li.items() if v}
+
+    # Fallback: legacy single list
+    if obj.get("listId"):
+        return {"tasks": str(obj["listId"])}
+
+    # Fallback: list of ids
+    if isinstance(li, list) and li:
+        out = {}
+        for i, v in enumerate(li):
+            if v:
+                out[f"list{i+1}"] = str(v)
+        if out:
+            return out
+
+    raise SystemExit("Missing ClickUp listId(s) in default.json")
 
 
 def load_state() -> dict[str, Any]:
@@ -99,12 +127,31 @@ def list_tasks(session: requests.Session, list_id: str, due_lt_ms: int) -> list[
     return r.json().get("tasks") or []
 
 
+def list_all_tasks(session: requests.Session, list_ids: dict[str, str], due_lt_ms: int) -> list[dict]:
+    """Fetch tasks for all configured lists and annotate with `_oclaw_list` name."""
+    out: list[dict] = []
+    for name, lid in list_ids.items():
+        try:
+            tasks = list_tasks(session, lid, due_lt_ms=due_lt_ms)
+        except Exception as e:
+            # Best-effort: keep monitoring other lists.
+            print(f"WARN: failed to fetch list {name} ({lid}): {e}")
+            continue
+        for t in tasks:
+            t["_oclaw_list"] = name
+            out.append(t)
+    return out
+
+
 def select_alerts(tasks: list[dict], *, now: int, mode: str) -> list[AlertTask]:
     """Select alerts.
 
     mode:
       - "frequent": due soon + overdue(urgent only)
       - "daily": overdue(non-urgent only)
+
+    List policy:
+      - `habits` list: due-soon only; no overdue nagging.
     """
 
     soon_horizon = now + 2 * 60 * 60 * 1000
@@ -119,6 +166,9 @@ def select_alerts(tasks: list[dict], *, now: int, mode: str) -> list[AlertTask]:
         except Exception:
             continue
 
+        list_name = str(t.get("_oclaw_list") or "tasks")
+        is_habits = list_name.strip().lower() == "habits"
+
         urgent = has_tag(t, "urgent")
         overdue = due_ms < now
 
@@ -126,10 +176,10 @@ def select_alerts(tasks: list[dict], *, now: int, mode: str) -> list[AlertTask]:
         if mode == "frequent":
             if due_ms <= soon_horizon and not overdue:
                 status = "due_soon"
-            elif overdue and urgent:
+            elif overdue and urgent and not is_habits:
                 status = "overdue"
         elif mode == "daily":
-            if overdue and not urgent:
+            if overdue and not urgent and not is_habits:
                 status = "overdue"
         else:
             raise SystemExit(f"Unknown mode: {mode}")
@@ -137,10 +187,14 @@ def select_alerts(tasks: list[dict], *, now: int, mode: str) -> list[AlertTask]:
         if not status:
             continue
 
+        # Include list label in task_id key to avoid collisions across lists.
+        tid = str(t.get("id"))
+        task_key = f"{list_name}:{tid}"
+
         out.append(
             AlertTask(
-                task_id=str(t.get("id")),
-                name=str(t.get("name")),
+                task_id=task_key,
+                name=f"[{list_name}] {str(t.get('name'))}",
                 url=str(t.get("url")),
                 due_ms=due_ms,
                 status=status,
@@ -201,8 +255,21 @@ def dedupe(alerts: list[AlertTask], state: dict[str, Any], *, now: int, mode: st
 
 
 def fmt_ms(ms: int) -> str:
-    # UTC ISO-ish
-    return time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(ms / 1000))
+    """Format ms timestamp in America/New_York.
+
+    Rationale: alerts should read in local time (ET) since that’s how due dates are interpreted.
+    """
+
+    try:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        dt = datetime.fromtimestamp(ms / 1000, tz=ZoneInfo("America/New_York"))
+        # Example: 2026-02-22 12:13 PM ET
+        return dt.strftime("%Y-%m-%d %I:%M %p ET")
+    except Exception:
+        # Fallback to UTC if zoneinfo is unavailable.
+        return time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(ms / 1000))
 
 
 def main():
@@ -211,7 +278,7 @@ def main():
     ap_mode = os.environ.get("CLICKUP_ALERT_MODE", "frequent").strip().lower()
 
     token = load_token()
-    list_id = load_list_id()
+    list_ids = load_list_ids()
     state = load_state()
 
     now = now_ms()
@@ -220,7 +287,7 @@ def main():
     s.headers.update({"Authorization": token})
 
     # Use 7d lookahead so we always include overdue tasks as well.
-    tasks = list_tasks(s, list_id, due_lt_ms=now + 7 * 24 * 60 * 60 * 1000)
+    tasks = list_all_tasks(s, list_ids, due_lt_ms=now + 7 * 24 * 60 * 60 * 1000)
 
     alerts = select_alerts(tasks, now=now, mode=ap_mode)
     alerts = dedupe(alerts, state, now=now, mode=ap_mode)

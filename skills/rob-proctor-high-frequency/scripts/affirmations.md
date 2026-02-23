@@ -1,0 +1,21 @@
+# Affirmations (bank)
+
+- Today I move with energy and certainty.
+- I am the creator of my results.
+- I choose thoughts that serve me.
+- I expect good things—and I act like it.
+- I am grateful, confident, and focused.
+- I attract opportunities by becoming the person who deserves them.
+- My mind is disciplined; my actions are consistent.
+- I release doubt and commit to my vision.
+- I am aligned with abundance.
+- I start strong and finish stronger.
+- My work creates value for others.
+- I am calm, clear, and unstoppable.
+- I take the next step with confidence.
+- I trust myself to figure it out.
+- My standards are high and my habits match.
+- I let go of what I can’t control.
+- I focus on what I want, not what I fear.
+- I am becoming the version of me that wins.
+- I choose faith over anxiety.

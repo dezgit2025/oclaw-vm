@@ -20,6 +20,9 @@ logs/
 *.log
 *.cache
 
+# Ignore external/collab repos cloned inside workspace
+repos/
+
 # Ignore database files
 *.db
 *.sqlite

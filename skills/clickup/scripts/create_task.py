@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from pathlib import Path
 
 from clickup import load_token, client, api_post
 
@@ -25,6 +26,18 @@ def main():
         "name": args.name,
         "description": args.description,
     }
+
+    # Auto-assign support: if an assigneeId is configured in ~/.config/openclaw-clickup/default.json,
+    # assign new tasks to that user unless explicitly overridden.
+    try:
+        default_path = Path.home() / ".config" / "openclaw-clickup" / "default.json"
+        if default_path.exists():
+            default_obj = json.loads(default_path.read_text())
+            assignee_id = default_obj.get("assigneeId")
+            if assignee_id is not None:
+                body["assignees"] = [int(assignee_id)]
+    except Exception:
+        pass
     if args.due_ms is not None:
         body["due_date"] = args.due_ms
         if args.due_date_time:
