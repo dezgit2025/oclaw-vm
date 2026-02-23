@@ -8,7 +8,8 @@ Management tools, scripts, and documentation for the **oclaw** Azure VM infrastr
 
 | Resource | Value |
 |----------|-------|
-| Resource Group | `RG_OCLAW2026` |
+| Resource Group (VM) | `RG_OCLAW2026` |
+| Resource Group (AI Search) | `oclaw-rg` — Azure AI Search (`oclaw-search`) lives here, NOT in `RG_OCLAW2026` |
 | Linux VM | `oclaw2026linux` (Standard_D4s_v3 — 4 vCPU / 16 GiB) |
 | Windows VM | `oclaw-admin-win11m` |
 | VM NSG | `oclaw2026linux-nsg` |
@@ -58,8 +59,20 @@ cd manage-oclaw/
 
 ## VM Paths (on oclaw2026linux)
 
+The VM workspace follows a standard folder structure documented in `~/.openclaw/workspace/GLOBAL_FOLDER_STRUCTURE.md` (also mirrored at [manage-oclaw/opslog/GLOBAL_FOLDER_STRUCTURE.md](manage-oclaw/opslog/GLOBAL_FOLDER_STRUCTURE.md)).
+
+**Code entropy prevention:** All files on the VM must be placed in the correct directory per the folder structure. If clawbot finds a misplaced file, it must move it to the correct location, log the move to `memory/entropy-fixes.md`, and update its memory with the new path. See the "Code Entropy Prevention" section in GLOBAL_FOLDER_STRUCTURE.md for full rules.
+
 | Path | Purpose |
 |------|---------|
+| `~/.openclaw/workspace/` | Main workspace root — see GLOBAL_FOLDER_STRUCTURE.md |
+| `~/.openclaw/workspace/skills/` | Per-skill folders (scripts, docs, directives) |
+| `~/.openclaw/workspace/ops/watchdog/` | Watchdog scripts (gateway, tailscale egress) |
+| `~/.openclaw/workspace/ops/docs/` | Operational runbooks and rules |
+| `~/.openclaw/workspace/ops/scripts/` | Maintenance/automation scripts |
+| `~/.openclaw/openclaw.json` | Main gateway configuration |
+| `~/.local/state/openclaw/` | Watchdog state files (JSON) |
+| `~/.openclaw/logs/` | Daily rotating logs per component |
 | `~/.config/openclaw-gdrive/credentials.json` | Google OAuth client secret |
 | `~/.config/openclaw-gdrive/token-openclawshared.json` | Google Drive OAuth token (access + refresh) |
 | `~/.config/openclaw-gdrive/token-docs-openclawshared.json` | Google Docs + Drive readonly OAuth token |
@@ -93,20 +106,29 @@ Managed at https://login.tailscale.com/admin/acls. Current policy:
 
 ### Exit Node (Residential IP Egress)
 
-The VM routes internet traffic through `chromeos-nissa` (Android/ChromeOS) to egress from a residential IP (`108.29.69.37`). This avoids 403 blocks that many services apply to Azure datacenter IPs.
+The VM routes **all internet traffic** through `chromeos-nissa` (Android/ChromeOS) via a Tailscale exit node to egress from a residential IP (`108.29.69.37`). This avoids 403 blocks that many services apply to Azure datacenter IPs.
+
+**Routing summary:**
+
+| State | Egress IP | Path |
+|-------|-----------|------|
+| Normal (exit node up) | `108.29.69.37` (residential) | VM → Tailscale tunnel → chromeos-nissa → Internet |
+| Failover (exit node down) | `20.81.190.88` (Azure) | VM → Azure network → Internet |
+| IMDS (always local) | n/a | VM → eth0 → `169.254.169.254` (ip rule exception) |
 
 **Failover watchdog** runs every 2 min via cron:
 - Checks if exit node is reachable (`tailscale ping`)
-- After 2 consecutive failures → clears exit node (falls back to Azure native egress)
-- When exit node recovers → re-enables residential egress
+- After 2 consecutive failures (~4 min) → clears exit node (falls back to Azure native egress)
+- When exit node recovers → re-enables residential egress (~2 min)
 - Script: `~/.openclaw/workspace/ops/watchdog/tailscale_egress_watchdog.py`
 - State: `~/.local/state/openclaw/tailscale-egress-watchdog.state`
 - Logs: `~/.openclaw/logs/tailscale-egress-watchdog/YYYY-MM-DD.log`
+- Full rules doc (on VM): `~/.openclaw/workspace/ops/docs/tailscale-exit-node-rules.md`
 
 **Quick checks:**
 
 ```bash
-# Current egress IP
+# Current egress IP (residential = 108.29.69.37, Azure = 20.81.190.88)
 ssh oclaw "curl -s ifconfig.me"
 
 # Watchdog state
@@ -116,7 +138,10 @@ ssh oclaw "cat ~/.local/state/openclaw/tailscale-egress-watchdog.state"
 ssh oclaw "tailscale status"
 ```
 
-**Important:** The chromeos-nissa exit node must be powered on and awake. If it sleeps, the watchdog will fail over to Azure egress automatically.
+**Critical rules:**
+- chromeos-nissa must be **powered on and awake** for residential egress. If it sleeps, the watchdog fails over to Azure automatically
+- **NEVER run `tailscale set --advertise-exit-node` on oclaw** — Tailscale cannot use and be an exit node simultaneously. This clears chromeos-nissa and drops residential egress. The VM should only **use** an exit node, never **be** one
+- See [exit node rules](manage-oclaw/opslog/tailscale-exit-node-rules.md) for full documentation
 
 ### IMDS Route Exception
 
@@ -132,11 +157,36 @@ This is persisted via `/etc/networkd-dispatcher/routable.d/50-imds-route.sh`. **
 
 The openclaw gateway has its own `tailscale.mode` setting in `~/.openclaw/openclaw.json`. This is a **separate concern** from SSH-over-Tailscale and exit node routing. Keep it set to `"mode": "off", "resetOnExit": false`. See [opslog](manage-oclaw/opslog/2026-02-20-gateway-crash-tailscale-mode-invalid.md) for what happens if it gets changed.
 
-## NSG Rules (Fallback Only)
+## NSG Rules (Locked Down)
 
-**Not needed for normal operations** — Tailscale bypasses NSG entirely.
+**Not needed for normal operations** — Tailscale bypasses NSG entirely. Azure Bastion was removed on 2026-02-22 (saves ~$138/month). No inbound Allow rules remain.
 
-Only run the NSG script if Tailscale is down and you need emergency SSH via the public IP:
+**Current VM NSG rules (`oclaw2026linux-nsg`):**
+
+| Rule | Priority | Action | Purpose |
+|------|----------|--------|---------|
+| `DenyOpenClawWebGateway` | 1001 | Deny | Blocks port 18789 from Internet — **DO NOT REMOVE** |
+| `DenyOpenClawControl` | 1002 | Deny | Blocks port 18791 from Internet — **DO NOT REMOVE** |
+| `JITRule_...` (Defender) | 4096 | Deny | Deny SSH from all (managed by Defender) |
+
+**Subnet NSG:** No custom rules (default deny).
+
+### Why Keep the Explicit Deny Rules
+
+The default `DenyAllInBound` (priority 65500) already blocks Internet traffic, but the two explicit deny rules on ports 18789/18791 are kept as **intentional defense-in-depth** due to widespread exploitation of exposed openclaw instances:
+
+- **42,665 exposed openclaw instances** found on the Internet (Jan-Feb 2026), 5,194 actively exploited
+- **CVE-2026-25253** (CVSS 8.8): One-click RCE chain — even localhost-bound gateways exploitable via malicious webpage
+- Default openclaw config previously bound to `0.0.0.0:18789` — tens of thousands of cloud instances were open
+- `/api/export-auth` endpoint had no auth — attackers extracted API keys (Claude, OpenAI, Google) within minutes
+- **ClawHavoc campaign**: 800+ malicious skills (~20% of ClawHub registry) distributing info-stealer malware
+- Multiple hacking groups actively scanning for exposed port 18789
+
+The explicit deny rules at low priority numbers protect against accidental Allow rules being added above `DenyAllInBound`. Our gateway (port 18789) is only reachable via the SSH tunnel over Tailscale — never exposed to Internet.
+
+**References:** [Microsoft Security Blog](https://www.microsoft.com/en-us/security/blog/2026/02/19/running-openclaw-safely-identity-isolation-runtime-risk/), [Bitsight](https://www.bitsight.com/blog/openclaw-ai-security-risks-exposed-instances), [Hunt.io CVE-2026-25253](https://hunt.io/blog/cve-2026-25253-openclaw-ai-agent-exposure)
+
+**Emergency fallback** — only if Tailscale is down:
 
 ```bash
 ./manage-oclaw/check-setup-nsg-for-oclaw-ssh.py    # creates AllowSSH-MyIP rules
@@ -213,6 +263,20 @@ This calls the VM-side script at `/home/desazure/.openclaw/workspace/ops/google-
 ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/google-auth/audit_google_oauth.py"
 ```
 
+## Gateway Model Configuration
+
+The gateway uses GitHub Copilot as its primary model provider. Model IDs must match the openclaw built-in registry exactly.
+
+| Setting | Value |
+|---------|-------|
+| Primary model | `github-copilot/claude-opus-4.6` |
+| Fallback | `github-copilot/gpt-5.2` |
+| Config path | `agents.defaults.model` in `~/.openclaw/openclaw.json` |
+
+**Important:** The model ID is `claude-opus-4.6`, **NOT** `copilot-opus-4.6`. Use `openclaw models list --all | grep github-copilot` to see valid IDs.
+
+Full model reference, available IDs, and config examples: **[manage-oclaw/opslog/copilot-model-oclaw-notes.md](manage-oclaw/opslog/copilot-model-oclaw-notes.md)**
+
 ## Known Patches on VM (will be lost on npm update)
 
 The openclaw dist on the VM has been patched in-place. These patches are overwritten if `npm update -g openclaw` is run. Check `manage-oclaw/opslog/` for full details.
@@ -226,6 +290,62 @@ The openclaw dist on the VM has been patched in-place. These patches are overwri
 **After any openclaw update**, re-apply the patch: add `pollIntervalMs: z.number().int().positive().optional(),` after the `streamMode` enum block in each `config-*.js` file (search for `.default("partial"),` — unique to telegram schema).
 
 Current telegram config includes `"pollIntervalMs": 10000` (10 seconds).
+
+## ClawBot Memory System (oclaw_brain)
+
+Persistent cross-session memory for ClawBot, deployed 2026-02-23. Two injection paths: always-on hook + on-demand deep recall skill. Full learnings: **[plans/memory-learnings-v1.md](plans/memory-learnings-v1.md)**
+
+### Architecture
+
+| Component | Path (on VM) | Purpose |
+|-----------|-------------|---------|
+| Skill files | `~/.openclaw/workspace/skills/clawbot-memory/` | Extraction, sync, recall scripts |
+| Hook | `~/.openclaw/hooks/clawbot-memory/` | `before_agent_start` hook (HOOK.md + handler.js) |
+| SQLite DB | `~/.claude-memory/memory.db` | Local memory store (source of truth) |
+| Venv | `~/.openclaw/workspace/skills/clawbot-memory/.venv/` | Python deps (openai, azure-search-documents) |
+| Session symlink | `~/.openclaw/logs/sessions` → `~/.openclaw/agents/main/sessions` | Bridges expected vs actual session path |
+| Source code (laptop) | `/Users/dez/Projects/oclaw_brain/oclaw_brain_skill_v1/` | Original source files |
+
+### How It Works
+
+1. **Hook injection (always-on):** `before_agent_start` hook fires every turn → extracts user message → runs `smart_extractor.py recall` → returns 3-5 relevant facts as `<clawbot_context>` prepended to prompt. Latency: ~0.13s (budget: 4s timeout).
+2. **SKILL.md deep recall (on-demand):** When ClawBot gets a memory query, it can run the full recall pipeline for topic-specific search with more results.
+3. **Daily extraction:** Cron at 20:15 UTC runs `smart_extractor.py sweep` to extract facts from new sessions via GPT-5.2.
+4. **Daily sync:** Cron at 20:35 UTC runs `memory_bridge.py sync` to push SQLite → Azure AI Search (3072-dim embeddings).
+5. **Fallback chain:** Azure AI Search (hybrid) → SQLite FTS5 → skip silently.
+
+### Cron Jobs (memory-related)
+
+| Schedule (UTC) | Command | Purpose |
+|----------------|---------|---------|
+| `15 20 * * *` | `smart_extractor.py sweep` | Extract facts from new sessions |
+| `35 20 * * *` | `memory_bridge.py sync` | Sync SQLite → Azure AI Search |
+| `0 3 * * *` | Log rotation | Keep 7 days of extraction/sync logs |
+
+### Quick Checks
+
+```bash
+# Memory count
+ssh oclaw "source ~/.openclaw/workspace/skills/clawbot-memory/.venv/bin/activate && cd ~/.openclaw/workspace/skills/clawbot-memory && python3 smart_extractor.py status"
+
+# Test recall
+ssh oclaw "source ~/.openclaw/workspace/skills/clawbot-memory/.venv/bin/activate && cd ~/.openclaw/workspace/skills/clawbot-memory && python3 smart_extractor.py recall 'topic here' -k 5"
+
+# Hook status
+ssh oclaw "openclaw hooks list 2>/dev/null"
+
+# Extraction logs
+ssh oclaw "ls -la ~/claude-memory/logs/"
+```
+
+### Important Notes
+
+- **Do NOT modify `smart_extractor.py` format detection** without testing against actual v3 session files — the v3 parser was added after a bug where v2-only detection returned 0 candidates
+- **`mem.py` must exist at TWO locations:** `~/claude-memory/cli/mem.py` AND `~/.openclaw/workspace/skills/clawbot-memory/cli/mem.py` (smart_extractor.py references the skill dir path)
+- **Gateway restart required** after changing hook files: `ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"`
+- **Azure AI Search** is in `oclaw-rg` (not `RG_OCLAW2026`), costs ~$74/mo (basic tier, flat-rate)
+- **Env vars required on VM:** `AZURE_SEARCH_ENDPOINT`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_CHAT_ENDPOINT` (set in /etc/environment)
+- This is separate from the built-in `~/.openclaw/memory/main.sqlite` — leave that untouched
 
 ## Foundry Proxy Fix
 
