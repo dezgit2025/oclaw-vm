@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-02-23T00:00:00.000Z" agent="Claude Code" version="24.0.0" type="device">
+  <diagram name="BarneyBot Brain v1" id="barneybot-brain-arch-v1">
+    <mxGraphModel dx="1422" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2800" math="0" shadow="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ============================================================ -->
+        <!-- TITLE BAR                                                     -->
+        <!-- ============================================================ -->
+        <mxCell id="title-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A1A2E;strokeColor=#16213E;arcSize=8;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="1300" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="title-text" value="&lt;font style=&quot;font-size: 32px;&quot;&gt;BarneyBot Brain &amp;mdash; Memory Architecture v1&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#FFFFFF;fontStyle=1;fontSize=32;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="1000" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="title-sub" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;4-Stage Pipeline: Understand &amp;rarr; Store &amp;rarr; Embed &amp;rarr; Recall&lt;br&gt;Persistent cross-session memory for ClawBot on oclaw2026linux&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#8899AA;fontStyle=0;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="300" y="95" width="800" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- STAGE 1: UNDERSTAND                                           -->
+        <!-- ============================================================ -->
+
+        <!-- Stage 1 outer container -->
+        <mxCell id="s1-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=3;arcSize=6;shadow=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="1200" height="440" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 1 header banner -->
+        <mxCell id="s1-header" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;STAGE 1: UNDERSTAND&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 13px; font-weight: normal;&quot;&gt;&amp;ldquo;What is worth remembering?&amp;rdquo;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;gradientColor=#FFB74D;gradientDirection=south;strokeColor=#E65100;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontSize=22;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="215" width="1160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Input: Telegram/Web Conversations -->
+        <mxCell id="s1-input" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;INPUT&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Telegram / Web Conversations&lt;br&gt;&lt;i&gt;Raw session logs&lt;/i&gt;&lt;br&gt;&lt;code&gt;~/.openclaw/agents/main/sessions/&lt;/code&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;strokeWidth=2;fontColor=#3E2723;fontSize=12;arcSize=10;shadow=1;spacingTop=5;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="140" y="300" width="240" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Processor: smart_extractor.py -->
+        <mxCell id="s1-processor" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;PROCESSOR&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;code&gt;smart_extractor.py sweep&lt;/code&gt;&lt;br&gt;GPT-5.2 (Azure OpenAI)&lt;br&gt;&lt;i&gt;Extract atomic facts as JSON with tags&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;gradientColor=#FFA726;gradientDirection=east;strokeColor=#E65100;strokeWidth=2;fontColor=#FFFFFF;fontSize=12;arcSize=10;shadow=1;spacingTop=5;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="480" y="295" width="260" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- 5-Gate Quality Filter -->
+        <mxCell id="s1-filter" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;5-GATE QUALITY FILTER&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;1. Noise Gate&lt;br&gt;2. Secrets Gate&lt;br&gt;3. Confidence Gate&lt;br&gt;4. Dedup Gate&lt;br&gt;5. Pivot Detection&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;gradientColor=#FFCC80;gradientDirection=south;strokeColor=#FF9800;strokeWidth=2;fontColor=#3E2723;fontSize=11;arcSize=8;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="480" y="430" width="260" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- Output: Clean JSON facts -->
+        <mxCell id="s1-output" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;OUTPUT&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Clean JSON Facts&lt;br&gt;&lt;i&gt;id, content, project, tags,&lt;br&gt;confidence, source&lt;/i&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF9800;strokeWidth=2;fontColor=#3E2723;fontSize=12;arcSize=10;shadow=1;spacingTop=5;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="840" y="300" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 1 schedule -->
+        <mxCell id="s1-schedule" value="&lt;b&gt;Schedule:&lt;/b&gt; Daily 20:15 UTC via cron" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#BF360C;fontStyle=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="420" width="220" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 1 DOES NOT -->
+        <mxCell id="s1-doesnot" value="&lt;b style=&quot;color: #C62828;&quot;&gt;DOES NOT:&lt;/b&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt; store vectors, embed anything, search&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#E53935;strokeWidth=1;fontColor=#B71C1C;fontSize=11;arcSize=15;shadow=0;spacingLeft=8;spacingRight=8;" vertex="1" parent="1">
+          <mxGeometry x="840" y="455" width="420" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows within Stage 1 -->
+        <mxCell id="s1-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s1-input" target="s1-processor" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E65100;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s1-processor" target="s1-output" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF9800;strokeWidth=2;endArrow=blockThin;endFill=1;dashed=1;dashPattern=8 4;" edge="1" source="s1-processor" target="s1-filter" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1-filter-label" value="&lt;font style=&quot;font-size: 10px; color: #BF360C;&quot;&gt;passes through&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="s1-arrow3">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- ARROW: STAGE 1 -> STAGE 2                                     -->
+        <!-- ============================================================ -->
+        <mxCell id="stage-arrow-1-2" value="&lt;font style=&quot;font-size: 13px; font-weight: bold;&quot;&gt;JSON facts flow down&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474F;strokeWidth=5;endArrow=blockThin;endFill=1;shadow=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="640" as="sourcePoint"/>
+            <mxPoint x="700" y="700" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- STAGE 2: STORE                                                -->
+        <!-- ============================================================ -->
+
+        <!-- Stage 2 outer container -->
+        <mxCell id="s2-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;arcSize=6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="1200" height="380" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 2 header banner -->
+        <mxCell id="s2-header" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;STAGE 2: STORE&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 13px; font-weight: normal;&quot;&gt;&amp;ldquo;Save the facts reliably&amp;rdquo;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;gradientColor=#66BB6A;gradientDirection=south;strokeColor=#2E7D32;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontSize=22;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="715" width="1160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- SQLite component -->
+        <mxCell id="s2-sqlite" value="&lt;b style=&quot;font-size: 16px;&quot;&gt;SQLite &amp;mdash; Source of Truth&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px; color: #1B5E20;&quot;&gt;WRITE STORE&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;code&gt;~/.claude-memory/memory.db&lt;/code&gt;&lt;br&gt;CLI: &lt;code&gt;mem.py add&lt;/code&gt;&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#4CAF50;gradientColor=#81C784;gradientDirection=south;strokeColor=#2E7D32;strokeWidth=2;fontColor=#FFFFFF;fontSize=12;arcSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="800" width="280" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- What it stores -->
+        <mxCell id="s2-stores" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Stores: PLAIN TEXT Only&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;code&gt;id&lt;/code&gt; | &lt;code&gt;content&lt;/code&gt; | &lt;code&gt;project&lt;/code&gt; | &lt;code&gt;tags&lt;/code&gt;&lt;br&gt;&lt;code&gt;active&lt;/code&gt; | &lt;code&gt;created_at&lt;/code&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;No vectors. No embeddings.&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#4CAF50;strokeWidth=2;fontColor=#1B5E20;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="480" y="800" width="260" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- WHY SQLite -->
+        <mxCell id="s2-why" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;WHY SQLite?&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Instant writes, zero cost&lt;br&gt;No network dependency&lt;br&gt;Deduplicates on write&lt;br&gt;Sync queue for Azure&lt;br&gt;Survives outages&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;gradientColor=#C8E6C9;gradientDirection=south;strokeColor=#4CAF50;strokeWidth=2;fontColor=#1B5E20;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="800" y="800" width="220" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 2 schedule -->
+        <mxCell id="s2-schedule" value="&lt;b&gt;Runs:&lt;/b&gt; Immediately after extraction" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#2E7D32;fontStyle=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="945" width="220" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 2 DOES NOT -->
+        <mxCell id="s2-doesnot" value="&lt;b style=&quot;color: #C62828;&quot;&gt;DOES NOT:&lt;/b&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt; understand meaning, do semantic search, create embeddings&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#E53935;strokeWidth=1;fontColor=#B71C1C;fontSize=11;arcSize=15;shadow=0;spacingLeft=8;spacingRight=8;" vertex="1" parent="1">
+          <mxGeometry x="140" y="980" width="420" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow within Stage 2 -->
+        <mxCell id="s2-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s2-sqlite" target="s2-stores" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E7D32;strokeWidth=2;endArrow=blockThin;endFill=1;dashed=1;dashPattern=8 4;" edge="1" source="s2-stores" target="s2-why" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- ARROW: STAGE 2 -> STAGE 3                                     -->
+        <!-- ============================================================ -->
+        <mxCell id="stage-arrow-2-3" value="&lt;font style=&quot;font-size: 13px; font-weight: bold;&quot;&gt;Plain text synced via memory_bridge.py&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474F;strokeWidth=5;endArrow=blockThin;endFill=1;shadow=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="1080" as="sourcePoint"/>
+            <mxPoint x="700" y="1140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- STAGE 3: EMBED                                                -->
+        <!-- ============================================================ -->
+
+        <!-- Stage 3 outer container -->
+        <mxCell id="s3-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=3;arcSize=6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1140" width="1200" height="400" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 3 header banner -->
+        <mxCell id="s3-header" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;STAGE 3: EMBED&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 13px; font-weight: normal;&quot;&gt;&amp;ldquo;Make facts searchable by meaning&amp;rdquo;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;gradientColor=#42A5F5;gradientDirection=south;strokeColor=#1565C0;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontSize=22;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1155" width="1160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Azure AI Search component -->
+        <mxCell id="s3-azure" value="&lt;b style=&quot;font-size: 16px;&quot;&gt;Azure AI Search&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px; color: #0D47A1;&quot;&gt;READ STORE&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;code&gt;oclaw-search.search.windows.net&lt;/code&gt;&lt;br&gt;Resource Group: &lt;code&gt;oclaw-rg&lt;/code&gt;&lt;br&gt;Cost: $74/mo (Basic tier, flat-rate)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;gradientColor=#64B5F6;gradientDirection=south;strokeColor=#1565C0;strokeWidth=2;fontColor=#FFFFFF;fontSize=12;arcSize=10;shadow=1;spacingTop=5;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="140" y="1240" width="300" height="140" as="geometry"/>
+        </mxCell>
+
+        <!-- Integrated Vectorizer -->
+        <mxCell id="s3-vectorizer" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Integrated Vectorizer&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;text-embedding-3-large&lt;/b&gt;&lt;br&gt;3072 dimensions&lt;br&gt;&lt;br&gt;Receives plain text from SQLite&lt;br&gt;Generates vector embeddings&lt;br&gt;&lt;b&gt;AUTOMATICALLY on ingest&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;gradientColor=#90CAF9;gradientDirection=south;strokeColor=#2196F3;strokeWidth=2;fontColor=#0D47A1;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1240" width="260" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- Hybrid Search -->
+        <mxCell id="s3-search" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Hybrid Search Engine&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;Vector&lt;/b&gt; (cosine similarity)&lt;br&gt;+&lt;br&gt;&lt;b&gt;BM25&lt;/b&gt; (keyword matching)&lt;br&gt;+&lt;br&gt;&lt;b&gt;Semantic Ranker&lt;/b&gt; (reranking)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;gradientColor=#90CAF9;gradientDirection=south;strokeColor=#2196F3;strokeWidth=2;fontColor=#0D47A1;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1240" width="220" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 3 schedule -->
+        <mxCell id="s3-schedule" value="&lt;b&gt;Schedule:&lt;/b&gt; Daily 20:35 UTC via &lt;code&gt;memory_bridge.py sync&lt;/code&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#1565C0;fontStyle=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="1395" width="340" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 3 DOES NOT -->
+        <mxCell id="s3-doesnot" value="&lt;b style=&quot;color: #C62828;&quot;&gt;DOES NOT:&lt;/b&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt; extract facts, understand conversations, store source of truth&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#E53935;strokeWidth=1;fontColor=#B71C1C;fontSize=11;arcSize=15;shadow=0;spacingLeft=8;spacingRight=8;" vertex="1" parent="1">
+          <mxGeometry x="140" y="1430" width="420" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows within Stage 3 -->
+        <mxCell id="s3-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s3-azure" target="s3-vectorizer" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565C0;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s3-vectorizer" target="s3-search" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- ARROW: STAGE 3 -> STAGE 4                                     -->
+        <!-- ============================================================ -->
+        <mxCell id="stage-arrow-3-4" value="&lt;font style=&quot;font-size: 13px; font-weight: bold;&quot;&gt;Search results returned to recall&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474F;strokeWidth=5;endArrow=blockThin;endFill=1;shadow=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="1540" as="sourcePoint"/>
+            <mxPoint x="700" y="1600" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- STAGE 4: RECALL                                               -->
+        <!-- ============================================================ -->
+
+        <!-- Stage 4 outer container -->
+        <mxCell id="s4-container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;strokeWidth=3;arcSize=6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1600" width="1200" height="440" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 4 header banner -->
+        <mxCell id="s4-header" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;STAGE 4: RECALL&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 13px; font-weight: normal;&quot;&gt;&amp;ldquo;Give BarneyBot the right memories&amp;rdquo;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;gradientColor=#AB47BC;gradientDirection=south;strokeColor=#6A1B9A;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontSize=22;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1615" width="1160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Hook path (always-on) -->
+        <mxCell id="s4-hook" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;HOOK (Always-On)&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;code&gt;before_agent_start&lt;/code&gt; hook&lt;br&gt;&lt;br&gt;Fires every conversation turn&lt;br&gt;Extracts user message&lt;br&gt;Runs &lt;code&gt;smart_extractor.py recall&lt;/code&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Latency: ~0.13s&lt;/b&gt; (budget: 4s)&lt;br&gt;Returns: 3-5 relevant facts&lt;br&gt;Injected as &lt;code&gt;&amp;lt;clawbot_context&amp;gt;&lt;/code&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;gradientColor=#E1BEE7;gradientDirection=south;strokeColor=#9C27B0;strokeWidth=2;fontColor=#4A148C;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="140" y="1700" width="260" height="210" as="geometry"/>
+        </mxCell>
+
+        <!-- SKILL.md path (on-demand) -->
+        <mxCell id="s4-skill" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;SKILL.md (On-Demand)&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Deep recall pipeline&lt;br&gt;&lt;br&gt;Triggered by memory queries&lt;br&gt;Topic-specific search&lt;br&gt;More results returned&lt;br&gt;&lt;br&gt;&lt;b&gt;Full semantic + keyword search&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;gradientColor=#E1BEE7;gradientDirection=south;strokeColor=#9C27B0;strokeWidth=2;fontColor=#4A148C;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="440" y="1700" width="260" height="210" as="geometry"/>
+        </mxCell>
+
+        <!-- Fallback chain -->
+        <mxCell id="s4-fallback" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Fallback Chain&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;1. Azure AI Search (hybrid)&lt;br&gt;&amp;darr;&lt;br&gt;2. SQLite FTS5 (local)&lt;br&gt;&amp;darr;&lt;br&gt;3. Skip silently&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#9C27B0;strokeWidth=2;fontColor=#4A148C;fontSize=12;arcSize=10;shadow=1;spacingTop=5;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="1700" width="220" height="140" as="geometry"/>
+        </mxCell>
+
+        <!-- BarneyBot output -->
+        <mxCell id="s4-output" value="&lt;b style=&quot;font-size: 16px;&quot;&gt;BarneyBot&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;(ClawBot)&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Context-aware responses&lt;br&gt;with recalled memories&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;gradientColor=#BA68C8;gradientDirection=south;strokeColor=#6A1B9A;strokeWidth=2;fontColor=#FFFFFF;fontSize=12;arcSize=10;shadow=1;spacingTop=5;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="1730" width="200" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- Stage 4 schedule -->
+        <mxCell id="s4-schedule" value="&lt;b&gt;Runs:&lt;/b&gt; Every conversation turn" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#6A1B9A;fontStyle=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="1920" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows within Stage 4 -->
+        <mxCell id="s4-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6A1B9A;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s4-hook" target="s4-output" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="1950"/>
+              <mxPoint x="980" y="1950"/>
+              <mxPoint x="980" y="1785"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6A1B9A;strokeWidth=3;endArrow=blockThin;endFill=1;shadow=1;" edge="1" source="s4-skill" target="s4-output" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="1960"/>
+              <mxPoint x="975" y="1960"/>
+              <mxPoint x="975" y="1800"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s4-arrow-fallback1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9C27B0;strokeWidth=2;endArrow=blockThin;endFill=1;dashed=1;dashPattern=8 4;" edge="1" source="s4-hook" target="s4-fallback" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4-fallback-label" value="&lt;font style=&quot;font-size: 10px; color: #6A1B9A;&quot;&gt;uses fallback chain&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="s4-arrow-fallback1">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- LEGEND / SUMMARY TABLE                                        -->
+        <!-- ============================================================ -->
+
+        <!-- Legend container -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#455A64;strokeWidth=2;arcSize=6;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="2100" width="1200" height="420" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend title -->
+        <mxCell id="legend-title" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Pipeline Summary &amp;amp; Cron Schedule&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#37474F;gradientColor=#546E7A;gradientDirection=south;strokeColor=#263238;strokeWidth=2;fontColor=#FFFFFF;fontStyle=1;fontSize=18;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="2115" width="1160" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend row 1: UNDERSTAND -->
+        <mxCell id="leg-s1-color" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;strokeWidth=2;arcSize=20;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="2180" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-s1-text" value="&lt;b&gt;Stage 1: UNDERSTAND&lt;/b&gt; &amp;mdash; &lt;code&gt;smart_extractor.py sweep&lt;/code&gt; via GPT-5.2 extracts atomic facts from session logs. 5-gate quality filter. Daily 20:15 UTC." style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#37474F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="195" y="2180" width="720" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend row 2: STORE -->
+        <mxCell id="leg-s2-color" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#2E7D32;strokeWidth=2;arcSize=20;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="2235" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-s2-text" value="&lt;b&gt;Stage 2: STORE&lt;/b&gt; &amp;mdash; SQLite (&lt;code&gt;~/.claude-memory/memory.db&lt;/code&gt;) is the write store and source of truth. Plain text only. Immediate after extraction." style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#37474F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="195" y="2235" width="720" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend row 3: EMBED -->
+        <mxCell id="leg-s3-color" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;strokeWidth=2;arcSize=20;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="2290" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-s3-text" value="&lt;b&gt;Stage 3: EMBED&lt;/b&gt; &amp;mdash; Azure AI Search auto-vectorizes (text-embedding-3-large, 3072d). Hybrid: Vector + BM25 + Semantic Ranker. Daily 20:35 UTC." style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#37474F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="195" y="2290" width="720" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend row 4: RECALL -->
+        <mxCell id="leg-s4-color" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#6A1B9A;strokeWidth=2;arcSize=20;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="2345" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-s4-text" value="&lt;b&gt;Stage 4: RECALL&lt;/b&gt; &amp;mdash; Hook (always-on, ~0.13s, 3-5 facts) + SKILL.md (deep recall). Fallback: Azure AI Search &amp;rarr; SQLite FTS5 &amp;rarr; skip." style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#37474F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="195" y="2345" width="720" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Cron schedule table -->
+        <mxCell id="leg-cron-title" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Cron Schedule (UTC)&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#263238;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="2405" width="160" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg-cron-row1" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;code&gt;10 20 * * *&lt;/code&gt; &amp;nbsp; session_format_watchdog.py &amp;nbsp; &lt;i&gt;(validate session format before extraction)&lt;/i&gt;&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="2435" width="520" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-cron-row2" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;code&gt;15 20 * * *&lt;/code&gt; &amp;nbsp; smart_extractor.py sweep &amp;nbsp; &lt;i&gt;(extract facts from new sessions)&lt;/i&gt;&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="2455" width="470" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-cron-row3" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;code&gt;35 20 * * *&lt;/code&gt; &amp;nbsp; memory_bridge.py sync &amp;nbsp; &lt;i&gt;(sync SQLite to Azure AI Search)&lt;/i&gt;&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="2475" width="430" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-cron-row4" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;code&gt;0 3 * * *&lt;/code&gt; &amp;nbsp;&amp;nbsp; Log rotation &amp;nbsp; &lt;i&gt;(keep 7 days of extraction/sync logs)&lt;/i&gt;&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#455A64;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="2495" width="410" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Key principle callout -->
+        <mxCell id="leg-principle" value="&lt;b style=&quot;font-size: 13px;&quot;&gt;Key Principle&lt;/b&gt;&lt;hr&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Each stage has ONE job.&lt;br&gt;&lt;b&gt;UNDERSTAND&lt;/b&gt; extracts. &lt;b&gt;STORE&lt;/b&gt; persists.&lt;br&gt;&lt;b&gt;EMBED&lt;/b&gt; vectorizes. &lt;b&gt;RECALL&lt;/b&gt; retrieves.&lt;br&gt;&lt;br&gt;No stage crosses into another's territory.&lt;br&gt;SQLite = write path. Azure = read path.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F9A825;strokeWidth=2;fontColor=#37474F;fontSize=11;arcSize=10;shadow=1;spacingTop=3;spacingBottom=5;" vertex="1" parent="1">
+          <mxGeometry x="940" y="2180" width="240" height="185" as="geometry"/>
+        </mxCell>
+
+        <!-- Version/date label -->
+        <mxCell id="version-label" value="&lt;font style=&quot;font-size: 10px; color: #9E9E9E;&quot;&gt;BarneyBot Brain Architecture v1 | Created 2026-02-23 | oclaw2026linux&lt;/font&gt;" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="2530" width="480" height="30" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

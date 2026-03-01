@@ -1,5 +1,11 @@
 # openclaw_vm Project Instructions
 
+## IMPORTANT: Agent Orchestration Rules
+
+**The main agent should ONLY orchestrate sub-agents — never process tasks directly.** Use sub-agents to process ALL tasks to preserve main agent context memory. Launch sub-agents **in parallel** whenever possible. Use sub-agents **aggressively** — even for small tasks, prefer delegation over direct execution.
+
+---
+
 ## Project Overview
 
 Management tools, scripts, and documentation for the **oclaw** Azure VM infrastructure. This includes SSH tunnel management, NSG configuration, Docker services (draw.io, Foundry GPT52), and Google Drive OAuth integration.
@@ -83,6 +89,8 @@ The VM workspace follows a standard folder structure documented in `~/.openclaw/
 ## Tailscale
 
 SSH to the VM uses Tailscale (WireGuard mesh) instead of the public IP. This eliminates the need for NSG rule management — Tailscale uses outbound-only connections, so no inbound firewall rules are required. Tailscale reconnects automatically after VM restart.
+
+**Enable/disable Tailscale on Mac:** `tailscale up` / `tailscale down`. After reboot, open the app first then run CLI. Conflicts with MS Azure VPN — disable one before using the other. Full procedure: **[manage-oclaw/opslog/2026-02-25-tailscale-mac-enable-disable.md](manage-oclaw/opslog/2026-02-25-tailscale-mac-enable-disable.md)**
 
 | Component | Value |
 |-----------|-------|
@@ -346,6 +354,12 @@ ssh oclaw "openclaw hooks list 2>/dev/null"
 ssh oclaw "ls -la ~/claude-memory/logs/"
 ```
 
+### Memory Dedup & Project Normalization (2026-02-25)
+
+`mem.py` now has fuzzy word-overlap dedup (>60% match = blocked, cross-project) and project name normalization via `PROJECT_ALIASES` map. Prevents future duplicate memories. `--force` flag bypasses dedup. Weekly LLM dedup sweep (GPT-4.1-mini) planned but not yet built. Full details: **[learnings/memory-learnings.md](learnings/memory-learnings.md)**
+
+ClawBot memory instruction file pushed to VM: `~/.openclaw/workspace/skills/clawbot-memory/open-claw-md-teacher.md`
+
 ### Important Notes
 
 - **Do NOT modify `smart_extractor.py` format detection** without testing against actual v3 session files — the v3 parser was added after a bug where v2-only detection returned 0 candidates
@@ -353,7 +367,9 @@ ssh oclaw "ls -la ~/claude-memory/logs/"
 - **Gateway restart required** after changing hook files: `ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"`
 - **Azure AI Search** is in `oclaw-rg` (not `RG_OCLAW2026`), costs ~$74/mo (basic tier, flat-rate)
 - **Env vars required on VM:** `AZURE_SEARCH_ENDPOINT`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_CHAT_ENDPOINT` (set in /etc/environment)
-- This is separate from the built-in `~/.openclaw/memory/main.sqlite` — leave that untouched
+- **Azure sync runs from VM only** — the local Mac does NOT need `azure-search-documents` installed. `mem.py add` on the Mac writes to local SQLite; the VM cron (`memory_bridge.py sync`) handles pushing to Azure AI Search. Do not attempt local-to-Azure sync from the Mac.
+- **This memory system (oclaw_brain) is separate from Claude Code's global memory** (`~/.agent-memory/`). The oclaw_brain system lives on the VM (`~/.claude-memory/` → Azure AI Search) and serves ClawBot via hooks. Claude Code on the Mac has its own independent `~/.agent-memory/memory.db` connected to the global CLAUDE.md agent memory. Do not mix the two.
+- This is also separate from the built-in `~/.openclaw/memory/main.sqlite` — leave that untouched
 
 ## Foundry Proxy Fix
 
