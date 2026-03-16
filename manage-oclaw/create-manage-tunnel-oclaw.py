@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manage SSH tunnel to oclaw VM (ports 18789, 18792-18797)."""
+"""Manage SSH tunnel to oclaw VM (ports 18789, 18792-18798)."""
 
 import subprocess
 import signal
@@ -8,7 +8,7 @@ import time
 import os
 
 
-TUNNEL_CMD = ["ssh", "-N", "-L", "18789:127.0.0.1:18789", "-L", "18792:127.0.0.1:18792", "-L", "18793:127.0.0.1:18793", "-L", "18794:127.0.0.1:18794", "-L", "18795:127.0.0.1:18795", "-L", "18796:127.0.0.1:18796", "-L", "18797:127.0.0.1:18797", "oclaw"]
+TUNNEL_CMD = ["ssh", "-N", "-L", "18789:127.0.0.1:18789", "-L", "18792:127.0.0.1:18792", "-L", "18793:127.0.0.1:18793", "-L", "18794:127.0.0.1:18794", "-L", "18795:127.0.0.1:18795", "-L", "18796:127.0.0.1:18796", "-L", "18797:127.0.0.1:18797", "-L", "18798:127.0.0.1:18798", "oclaw"]
 PID_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".tunnel-oclaw.pid")
 
 
@@ -99,8 +99,8 @@ def status():
     running, pid = is_tunnel_running()
     if running:
         print(f"Tunnel is RUNNING (PID {pid})")
-        print(f"  Local:  127.0.0.1:18789, 18792-18797")
-        print(f"  Remote: oclaw -> 127.0.0.1:18789, 18792-18797")
+        print(f"  Local:  127.0.0.1:18789, 18792-18798")
+        print(f"  Remote: oclaw -> 127.0.0.1:18789, 18792-18798")
     else:
         print("Tunnel is NOT running.")
 
