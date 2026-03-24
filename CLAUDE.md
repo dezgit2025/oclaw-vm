@@ -10,6 +10,32 @@
 
 Management tools, scripts, and documentation for the **oclaw** Azure VM infrastructure. This includes SSH tunnel management, NSG configuration, Docker services (draw.io, Foundry GPT52), and Google Drive OAuth integration.
 
+## Skill Index (Master Registry)
+
+All OpenClaw skills are tracked in **[OPEN-CLAW-SKILL-INDEX.md](manage-oclaw/opslog/)** on the VM at `~/.openclaw/workspace/OPEN-CLAW-SKILL-INDEX.md`. This is the single source of truth for:
+
+- All active skills (28 as of 2026-03-16) with descriptions, status, and dates
+- Deprecated/disabled skills and reasons
+- Skill categories (Google Suite, Social Media, Productivity, etc.)
+- Changelog of all skill additions, updates, and deprecations
+
+**Update this file whenever you add, modify, or deprecate a skill.** ClawBot can be told to read it for a full picture of available capabilities.
+
+## OCLAW Brain CLI (copilot-cli-llm)
+
+| Property | Value |
+|----------|-------|
+| Repo | `https://github.com/dezgit2025/copilot-cli-llm` (private) |
+| Local path | `~/Projects/oclaw-brain/copilot-cli-llm/` |
+| Language | Go 1.26+ |
+| SDK | GitHub Copilot SDK for Go (`github.com/github/copilot-sdk/go` v0.1.32) |
+| Default model | `gpt-5.4` |
+| Think model | `claude-opus-4.6` (triggered by `think:` prefix) |
+| Auth | `GH_TOKEN` from `dvillanueva_microsoft` enterprise account (personal `dezgit2025` lacks SDK org policy) |
+| Deploy path (VM) | `~/.openclaw/workspace/bin/oclaw-brain` |
+| Build plan | `plans/copilot-cli-llm-plans.md` |
+| Progress | `plans/progress.md` |
+
 ## Azure Infrastructure
 
 | Resource | Value |
@@ -245,17 +271,25 @@ This script restarts `openclaw-gateway.service` via systemd (user unit), logs ti
 
 ## Google OAuth Reauth
 
+**Full workflow and troubleshooting:** **[GOOGLE-AUTH.md](GOOGLE-AUTH.md)**
+
 **Trigger:** When user says "reauth google", "google reauth", "refresh google tokens", or similar.
 
-**Prerequisites:** VM must be running and tunnel connected (port 18793 needed).
+**Prerequisites:** VM must be running and tunnel connected (ports 18793-18798 needed).
 
-**Run from laptop:**
+### GDrive Quick Reauth (single service)
+
+```bash
+ssh oclaw "~/.openclaw/workspace/ops/google-auth/reauth-drive.sh"
+```
+
+Script handles port cleanup, token deletion, and OAuth flow. Open the printed URL in your Mac browser.
+
+### Full reauth (all 6 Google services)
 
 ```bash
 echo "Y" | ./google-reauth/laptop_google_reauth.sh oclaw assistantdesi@gmail.com
 ```
-
-This calls the VM-side script at `/home/desazure/.openclaw/workspace/ops/google-auth/google_reauth.sh` which re-auths **all 6 Google services** in one shot:
 
 | Service | Token Path (on VM) |
 |---------|--------------------|
@@ -265,6 +299,17 @@ This calls the VM-side script at `/home/desazure/.openclaw/workspace/ops/google-
 | GSheets | `~/.config/openclaw-gdrive/token-sheets-openclawshared.json` |
 | GCal (read) | `~/.config/openclaw-gcal/token-readonly.json` |
 | GCal (write) | `~/.config/openclaw-gcal/token-write.json` |
+
+### If auth fails (`invalid_grant`)
+
+Delete the token first, then retry:
+```bash
+ssh oclaw "rm -f ~/.config/openclaw-gdrive/token-openclawshared.json"
+```
+
+### Script maintenance rule
+
+Auth scripts must run **directly on the VM** — no inner `ssh oclaw` calls. If given a script with `ssh oclaw` inside, strip those calls so auth.py runs locally on the VM. Then deploy via `scp` + `chmod +x`. See [GOOGLE-AUTH.md](GOOGLE-AUTH.md) for full details.
 
 **After reauth**, optionally run the audit:
 ```bash
@@ -285,23 +330,17 @@ The gateway uses GitHub Copilot as its primary model provider. Model IDs must ma
 
 Full model reference, available IDs, and config examples: **[manage-oclaw/opslog/copilot-model-oclaw-notes.md](manage-oclaw/opslog/copilot-model-oclaw-notes.md)**
 
-## Known Patches on VM (will be lost on npm update)
+## Patches & Shims on VM
 
-The openclaw dist on the VM has been patched in-place. These patches are overwritten if `npm update -g openclaw` is run. Check `manage-oclaw/opslog/` for full details.
+**Full patch registry:** **[SHIM-PATCH-LOG.md](SHIM-PATCH-LOG.md)** — single source of truth for all patches, config overrides, upgrade checklist, and retirement tracking.
+**Version history:** **[OPEN-CLAW-VERSION-LOG.md](OPEN-CLAW-VERSION-LOG.md)** — records every OpenClaw version upgrade with smoke test results, patches re-applied/retired, breaking changes, and rollback notes.
 
-| Patch | Date | Files (on VM under `~/.npm-global/lib/node_modules/openclaw/dist/`) | Opslog |
-|-------|------|------|--------|
-| Add `pollIntervalMs` to telegram Zod schema | 2026-02-20 | `config-BEpchvJh.js`, `config-BseT0AMx.js`, `config-CQx0LPGX.js`, `config-F0Q6PyfW.js` | [opslog](manage-oclaw/opslog/2026-02-20-fix-telegram-pollIntervalMs-schema.md) |
+**Upgrade workflow:** **[workflow/upgrade-openclaw.md](workflow/upgrade-openclaw.md)** — 7-phase procedure (research → baseline → upgrade → patches → smoke tests → docs → monitor). **Follow this workflow for every OpenClaw upgrade.** Never run `npm update -g openclaw` — always pin the version.
 
-**Note:** v2026.2.17 added `pollIntervalMs` to an internal schema (`z.number().int().nonnegative().optional()` at one level) but the `.strict()` telegram channel config schema still rejects it. The patch is still required. A non-fatal "Unrecognized key" warning from the pre-validation check still appears in logs but does not prevent startup.
-
-**After any openclaw update:**
-
-1. Re-apply the patch: add `pollIntervalMs: z.number().int().positive().optional(),` after the `streamMode` enum block in each `config-*.js` file (search for `.default("partial"),` — unique to telegram schema)
-2. Run `session_format_watchdog.py --force` to validate session format compatibility
-3. Restart gateway: `ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"`
-
-Current telegram config includes `"pollIntervalMs": 10000` (10 seconds).
+| Patch | Type | Date | Status | Quick Reference |
+|-------|------|------|--------|-----------------|
+| PATCH-001: `pollIntervalMs` Telegram schema | Dist patch | 2026-02-20 | Active | Re-apply after update |
+| PATCH-002: Copilot Enterprise IDE headers | Config override | 2026-03-19 | Active | Survives updates |
 
 ## ClawBot Memory System (oclaw_brain)
 
@@ -394,9 +433,17 @@ Docs and test results for bypassing Starbucks WiFi traffic shaping when working 
 
 **TODO:** Test Android WiFi tethering + bonding at Starbucks
 
+## Resolved Bug: 421 Misdirected Request (2026-03-18 → fixed 2026-03-19)
+
+**Debug log:** [four21bug/four21bug-log.md](four21bug/four21bug-log.md) | **Patch:** PATCH-002 in [SHIM-PATCH-LOG.md](SHIM-PATCH-LOG.md)
+
+Enterprise Copilot API requires IDE headers that OpenClaw doesn't send. Fixed via config override (survives updates). See SHIM-PATCH-LOG.md for full details and upgrade instructions.
+
 ## Sensitive Files (do not commit)
 
 - `credentials.json` -- Google OAuth client secret
 - `token.json` -- Azure/Google tokens
 - `.env.*` files (non-example ones)
 - `~/.ssh/oclaw-key-v4.pem`
+
+> Task execution: Follow plans/AGENT-PLAN.md for all task execution, testing, and commit protocol.
