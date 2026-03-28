@@ -1,11 +1,100 @@
 > Process: Follow plans/AGENT-PLAN.md for all task execution.
 
-# Project: Memory CI Loop — Tag Extraction Analysis & Phase 0
+# Project: Memory Recall Optimizer
 
-**Plan:** `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md`
-**PRD:** `MEMORY-CI-LOOP.PRD`
-**Dev folder:** `/Users/dez/Projects/openclaw_vm/` (analysis) + `/Users/dez/Projects/oclaw_brain/` (source code)
-**Started:** 2026-03-27
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Dev folder:** `~/Projects/oclaw_brain/oclaw_brain_skill_v1/` (source code) + `~/Projects/openclaw_vm/` (benchmark tools + data)
+
+---
+
+## Gates
+
+### Plan Gate
+
+> **Auto-populated:** `memory-recall-optimizer1` is replaced with the plan filename when this progress.md is created or updated.
+
+- **Read `plans/memory-recall-optimizer1.md` before AND after every step.**
+- Before: confirm your approach aligns with the plan's specification.
+- After: diff your changes against the plan — if anything deviates, fix the code before moving on.
+- The plan file is **read-only** — never modify it from progress.md context.
+
+### Architecture Gate
+
+> **SKIP** — architecture is already documented in the PRD (`MEMORY-CI-LOOP.PRD`) and the plan itself contains the full architecture diagram (Local Test → Compare → Push). No separate `plans/architectural-design.md` needed.
+
+---
+
+## Rules to Follow
+
+> See `plans/AGENT-PLAN.md` for the 5-phase task execution protocol.
+> See `plans/workflow/` for detailed workflow rules:
+> - `agent-orchestration.md` — sub-agent dispatch, parallelism, domain routing
+> - `testing-protocol.md` — TDD, test placement, quality gates
+> - `progress-discipline.md` — how to manage this file, recovery
+> - `commit-protocol.md` — git workflow, branching, atomic commits
+> - `code-gap-handling.md` — adaptive gap resolution: ImportError, API changes, auth failures, unknown blockers
+
+### Core Rules
+1. **Read this file FIRST** at the start of every session
+2. **Update this file AFTER** completing each step — immediately, not in batch
+3. **Never contradict this file** — if it says something is done, don't redo it
+4. **Follow AGENT-PLAN.md** for task execution, testing, and commits
+5. **Research before guessing** — log findings to `plans/research-log.md`
+
+### Execution Model
+- **Strict delegation.** Orchestrator coordinates — subagents do code work.
+- **Only the orchestrator updates this file.** Subagents report back; orchestrator records.
+- **Use subagents in parallel** when steps have no shared dependencies.
+
+### Testing (After Every Step)
+- Follow `plans/AGENT-PLAN.md` Phases 3-4 for all testing after implementation.
+- 3 agents, sequential loop: `test-planner` → `test-writer` → `test-runner` (one test at a time).
+- A step is not `[x]` until all planned tests pass AND verification passes.
+
+### Step Verification
+- **Commit after each phase is completed.** This is your checkpoint.
+- **Each step should have a verification command.** A step is not complete until its verify command passes.
+- **Mark a step `[x]` only when:** action is done, verification passes, AND tests exist.
+- **On ANY error/exception:** Log it in the Exceptions & Learnings section.
+
+### Recovery After Crash
+```
+1. Read this file → find last completed step
+2. Check git log → verify last commit matches
+3. Resume from the NEXT uncompleted step
+4. If a step was in-progress, re-run it from scratch
+```
+
+---
+
+## Import Rules
+
+```
+quality/recall/*.py -> smart_extractor + memory_bridge (read recall results, not modify)
+quality/recall/*.py -> quality/data/*.json (read/write benchmark data)
+handler.js -> smart_extractor.py (invokes via shell, not Python import)
+smart_extractor.py -> memory_bridge.py (imports hybrid search)
+smart_extractor.py DO NOT import quality/* (benchmark is separate from production)
+```
+
+---
+
+## Formatting Rules — How to Structure Phases, Steps, and Substeps
+
+> These rules define how sprint progress sections must be written.
+> Follow this structure exactly when filling in the Sprint Progress section.
+
+### Current Status Table
+
+The status table is the **first thing to check** at session start. It shows all phases and their state at a glance.
+
+### Step Format
+
+Each step is an `####` heading under its phase. Include the parallelism tag and agent count.
+
+### Substep Format
+
+Substeps are checkboxes (`- [ ]`) under a step. They are atomic actions.
 
 ---
 
@@ -13,22 +102,40 @@
 
 | Phase | Status |
 |-------|--------|
-| Phase I — Data Export & Analysis (Steps 1-4) | Complete (2026-03-27) |
-| Phase II — Cleanup, Normalization & Infrastructure (Steps 4a-5c) | Complete (2026-03-28) — scoring profile deferred |
-| Phase III — Extraction Prompt Tuning & Validation (5 layers + A/B) | Complete (2026-03-28) |
+| Phase 0 — Architecture | SKIP — documented in MEMORY-CI-LOOP.PRD |
+| Round 1 — Baseline Measurement | NOT STARTED |
+| Round 2 — RRF Fusion | NOT STARTED |
+| Round 3 — Query Quality Bundle | NOT STARTED |
+| Round 4 — Embed/Scoring Quality | NOT STARTED |
+| Round 5 — Full Benchmark (conditional) | NOT STARTED — only if stop gate not met after Round 4 |
+| Round 6 — Deploy to VM | NOT STARTED |
+
+---
+
+## Parallelism Legend
+
+| Tag | Meaning |
+|-----|---------|
+| `[SEQ]` | Sequential — must complete before next step |
+| `[P1-x]` | Parallel group 1 — all P1 steps launch simultaneously |
+| `[P2-x]` | Parallel group 2 — all P2 steps launch simultaneously |
+| `[GATE]` | Sync point — waits for all prior parallel steps to finish |
 
 ---
 
 ## Key Learnings
 
+> Carry forward across phases. When you hit a bug, conflict, or blocker that has a resolution, log it here so future phases don't repeat the mistake.
+
 | Type | Description | Resolution |
 |------|-------------|------------|
-| Gotcha | SSH to oclaw requires `dangerouslyDisableSandbox: true` in Claude Code | Sandbox blocks outbound connections to Tailscale IPs |
-| Gotcha | `tailscale up` CLI fails with "Failed to load preferences" if app not opened first | Open Tailscale app from menu bar first, then CLI |
+| _(none yet)_ | | |
 
 ---
 
 ## Exceptions & Learnings
+
+> Runtime errors, unexpected behaviors, and one-off issues encountered during execution. Unlike Key Learnings (which are reusable patterns), this section captures session-specific incidents.
 
 _(Log new issues here as they arise.)_
 
@@ -36,454 +143,485 @@ _(Log new issues here as they arise.)_
 
 ## Sprint Progress
 
-### Phase I — Data Export & Analysis (Steps 1-4)
+### Phase 0 — Architecture (SKIP)
 
-**Plan:** `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md`
-**Goal:** Export data from VM, analyze tag quality, produce Claude-as-judge baseline report.
+> **SKIP:** Architecture is documented in `MEMORY-CI-LOOP.PRD` and in the plan itself (`plans/memory-recall-optimizer1.md` — "Architecture: Local Test → Compare → Push" diagram). No separate architecture doc needed.
+
+---
+
+### Round 1 — Baseline Measurement
+
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Goal:** Get a number — export memories, build 20 benchmark queries, run recall, judge on 2 dimensions (Relevance + Noise), compute Precision@5 / MRR / weighted score.
 
 #### Max Parallel Agents
 
 | Step | Agents | Description |
 |------|--------|-------------|
-| Step 1 | 0 | [SEQ] — Manual: boot VM + Tailscale (DONE) |
-| Step 2 | 1 | [SEQ] — Export data from VM to local |
-| Step 3 | 1 | [SEQ] — Tag distribution analysis (needs Step 2 data) |
-| Step 4 | 1 | [SEQ] — Claude-as-judge full audit (needs Step 2+3 data) |
+| Step 1 | 1 | [SEQ] — Export memory snapshot to JSON fixture |
+| Step 2 | 1 | [SEQ] — Generate 20 benchmark queries (10 verbatim + 10 temporal) |
+| Step 3 | 1 | [SEQ] — Run baseline recall against local SQLite |
+| Step 4 | 1 | [SEQ] — Judge baseline on 2 dimensions (Relevance + Noise) |
+| Step 5 | 1 | [SEQ] — Compute Precision@5, MRR, weighted score |
 
-**Total: 3 agent dispatches across 3 steps (sequential — each needs prior step's output).**
+**Total: 5 agent dispatches across 5 steps (sequential — each needs prior step's output).**
 
 ---
 
-#### Step 1 — Boot VM + Tailscale `[SEQ]` — 0 agents (manual)
+#### Step 1 — Export Memory Snapshot `[SEQ]` — 1 agent
 
 > **Launch condition:** None (first step).
+> **File ownership:** Agent creates `quality/recall/export_snapshot.py` and `quality/data/memory_snapshot.json`.
 
-- [x] (2026-03-27) Open Tailscale app, enable VPN
-- [x] (2026-03-27) VM already running (up 20:34)
-- [x] (2026-03-27) Start SSH tunnel (PID 26232, ports 18789-18798)
-- [x] (2026-03-27) **Verify:** `ssh oclaw "hostname && uptime"` — PASS
-
----
-
-#### Step 2 — Export data from VM `[SEQ]` — 1 agent
-
-> **Launch condition:** Step 1 complete.
-
-- [x] (2026-03-27) Create local analysis directory `plans/tag-analysis-mar27/`
-- [x] (2026-03-27) Find sessions — stratified sample: 2 large, 3 medium, 2 small (7 total, ~5.9MB)
-- [x] (2026-03-27) Copy 7 session JSONL files locally (replaced initial 3 tiny files)
-- [x] (2026-03-27) Export all active memories as JSONL (112 memories, 55KB)
-- [x] (2026-03-27) Export tag distribution (67 tag groups)
-- [x] (2026-03-27) Copy SOUL.md (7.5KB) and USER.md (2.2KB) from VM
-- [x] (2026-03-27) Add `plans/tag-analysis-mar27/` to `.gitignore`
-- [x] (2026-03-27) **Verify:** All 10 files exist and are non-empty — PASS
+- [ ] Create `quality/recall/export_snapshot.py` — reads `~/.agent-memory/memory.db`, exports all active memories to JSON
+- [ ] Run: `python3 quality/recall/export_snapshot.py --db ~/.agent-memory/memory.db --output quality/data/memory_snapshot.json`
+- [ ] Confirm output contains all active memories with id, content, tags, project, importance, access_count, created_at
+- [ ] **Verify:** `python3 -c "import json; d=json.load(open('quality/data/memory_snapshot.json')); print(f'{len(d)} memories exported')"` — count > 0
 
 ---
 
-#### Step 3 — Tag distribution analysis `[SEQ]` — 1 agent
+#### Step 2 — Generate 20 Benchmark Queries `[SEQ]` — 1 agent
 
-> **Launch condition:** Step 2 complete.
+> **Launch condition:** Step 1 complete (need snapshot to mine queries from).
+> **File ownership:** Agent creates `quality/recall/generate_queries.py` and `quality/data/recall_benchmark.json`.
 
-- [x] (2026-03-27) Analyze tag frequency distribution — 594 tag usages, 70 unique tags
-- [x] (2026-03-27) Calculate anchor coverage — 96.4% have both type: + domain: (PASS, target 80%)
-- [x] (2026-03-27) Tag diversity — no single tag >25% (PASS, max is status:active at 16.2%)
-- [x] (2026-03-27) Near-duplicate detection — found conflicting confidence tags on 6 memories
-- [x] (2026-03-27) Free-form tags — 40 outside registry (75 usages), 6 candidates for promotion
-- [x] (2026-03-27) Tags-per-memory average — ~5.3 tags/memory
-- [x] (2026-03-27) Write report to `plans/tag-analysis-mar27/step3-tag-distribution-report.md`
-- [x] (2026-03-27) **Verify:** Report contains all metrics + key findings — PASS
-
-**Critical findings:** importance flat (all=5), access_count all zeros, type:context overuse (20.5%), domain:infrastructure dominates (70.4%), 83% memories from single session, decided:2026-02-23 over-applied to 76 memories
+- [ ] Create `quality/recall/generate_queries.py` — uses GPT-4.1-mini to generate "What question would this memory answer?" per top-10 memory
+- [ ] Generate 10 verbatim fact recall queries from top-10 highest-importance memories
+- [ ] Generate 10 temporal ordering queries manually: "What did we decide about X?" for decisions with dates
+- [ ] Each query includes: id, query, category, expected_memory_ids, expected_keywords, difficulty
+- [ ] Save to `quality/data/recall_benchmark.json`
+- [ ] **Verify:** `python3 -c "import json; d=json.load(open('quality/data/recall_benchmark.json')); print(f'{len(d)} queries'); assert len(d)==20"` — exactly 20 queries
 
 ---
 
-#### Step 4 — Claude-as-judge full audit `[SEQ]` — 1 agent
+#### Step 3 — Run Baseline Recall `[SEQ]` — 1 agent
 
-> **Launch condition:** Steps 2 and 3 complete.
+> **Launch condition:** Step 2 complete (need benchmark queries).
+> **File ownership:** Agent creates `quality/recall/run_benchmark.py` and `quality/data/round1-baseline.json`.
 
-- [x] (2026-03-27) Load all 112 memories from `all-memories.jsonl`
-- [x] (2026-03-27) Load SOUL.md + USER.md for ClawBot utility scoring
-- [x] (2026-03-27) Load TAG_REGISTRY.md for tag specificity evaluation
-- [x] (2026-03-27) Score all 112 memories on 6 dimensions — weighted avg: **2.52/5.0**
-- [x] (2026-03-27) Aggregate: 56.3% "needs improvement", only 10.7% "excellent"
-- [x] (2026-03-27) Read 2 small session JSONL files — found 13 missed facts
-- [x] (2026-03-27) Write report to `plans/tag-analysis-mar27/step4-claude-judge-report.md`
-- [x] (2026-03-27) **Verify:** Report has all sections — PASS
-
-**Key finding:** #1 problem is duplication (~40 near-identical Tailscale watchdog memories from single bulk extraction). Manually-added memories score 4.0-4.7. Phase 0 validated — need `type:fact` in registry + better dedup in extractor.
-
-#### Success Criteria (Phase I)
-
-1. All data exported from VM to local `plans/tag-analysis-mar27/`
-2. Tag distribution report shows baseline anchor coverage and diversity metrics
-3. Claude-as-judge report scores all active memories with weighted averages
-4. Missed-fact analysis covers all 3 session transcripts
-5. Decision gate: Phase 0 validated or deprioritized based on data
+- [ ] Create `quality/recall/run_benchmark.py` — runs each query through `cmd_recall()` against local SQLite
+- [ ] Run: `python3 quality/recall/run_benchmark.py --benchmark quality/data/recall_benchmark.json --db ~/.agent-memory/memory.db --output quality/data/round1-baseline.json`
+- [ ] Output includes: query, recalled memory IDs, recalled content, expected IDs, hit/miss per query
+- [ ] **Verify:** `python3 -c "import json; d=json.load(open('quality/data/round1-baseline.json')); print(f'{len(d)} results')"` — 20 results
 
 ---
 
-### Phase II — Cleanup, Normalization & Infrastructure (Steps 4a-5c)
+#### Step 4 — Judge Baseline on 2 Dimensions `[SEQ]` — 1 agent
 
-**Plan:** `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md`
-**Goal:** Clean up duplicates, fix tag errors, normalize tags, add recency boost, access tracking, lifecycle management, and pin system.
+> **Launch condition:** Step 3 complete (need recall results).
+> **File ownership:** Agent creates `quality/recall/judge_recall.py` and `quality/data/round1-scores.json`.
+
+- [ ] Create `quality/recall/judge_recall.py` — LLM-as-judge scoring (one criterion per call, CoT before score, temperature=0)
+- [ ] Score each of 20 queries on **Relevance** (30% weight) and **Noise** (10% weight) — 40 judge calls total
+- [ ] Use GPT-4.1-mini as judge model
+- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round1-baseline.json --dimensions relevance,noise --model gpt-4.1-mini --output quality/data/round1-scores.json`
+- [ ] Output includes per-query: reasoning, score (1-5), dimension
+- [ ] **Verify:** `python3 -c "import json; d=json.load(open('quality/data/round1-scores.json')); print(f'{len(d[\"scores\"])} judge scores')"` — 40 scores
+
+---
+
+#### Step 5 — Compute Metrics `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 4 complete (need judge scores).
+> **File ownership:** Agent creates `quality/recall/regression_gate.py`, updates `quality/data/round1-scores.json` with metrics.
+
+- [ ] Create `quality/recall/regression_gate.py` — computes Precision@5, MRR, weighted judge score; compares before/after with thresholds
+- [ ] Compute Precision@5 from round1-baseline.json (fraction of expected IDs in top 5)
+- [ ] Compute MRR (mean reciprocal rank of first expected ID)
+- [ ] Compute weighted judge score (Relevance 30% + Noise 10%)
+- [ ] Document baseline numbers in this progress.md
+- [ ] **Verify:** `python3 quality/recall/regression_gate.py --baseline quality/data/round1-scores.json` — prints all 3 metrics
+
+#### Success Criteria (Round 1)
+
+1. `quality/data/memory_snapshot.json` exists with all active memories
+2. `quality/data/recall_benchmark.json` contains exactly 20 curated queries
+3. `quality/data/round1-baseline.json` has recall results for all 20 queries
+4. `quality/data/round1-scores.json` has 40 judge scores (20 queries x 2 dimensions)
+5. Baseline Precision@5, MRR, and weighted score documented
+
+---
+
+### Round 2 — RRF Fusion
+
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Goal:** Replace dedup+priority sort with Reciprocal Rank Fusion (k=10) in `cmd_recall()`. Highest-ROI single code change: +8-10% accuracy, 15 lines, zero API cost.
 
 #### Max Parallel Agents
 
 | Step | Agents | Description |
 |------|--------|-------------|
-| Step 1 | 1 | [SEQ] — Dedup cleanup + tag error fixes (Step 4a) |
-| Step 2 | 1 | [SEQ] — Re-extract baseline on VM (Step 5) |
-| Step 3 | 2 | [P1-A, P1-B] — Tag normalization + registry updates (Step 5a) |
-| Step 4 | 2 | [P2-A, P2-B] — Scoring profile + access_count (Step 5b-1, 5b-2) |
-| Step 5 | 2 | [P3-A, P3-B] — permanent:true + pin: tags (Step 5b-3, 5c) |
-| Step 6 | 1 | [SEQ] — Stale cleanup cron + quarterly review (Step 5b-4, 5b-5) |
-| Step 6a | 1 | [SEQ] — Memory health monitor: `mem.py status` + daily cron |
-| Step 7 | 1 | [GATE] — Verify all changes, sync --full, deploy to VM |
+| Step 1 | 1 | [SEQ] — Implement `rrf_fuse()` in smart_extractor.py |
+| Step 2 | 1 | [SEQ] — Re-run benchmark + judge |
+| Step 3 | 1 | [SEQ] — Compare Round 1 → Round 2 |
 
-**Total: 11 agent dispatches across 8 steps.**
+**Total: 3 agent dispatches across 3 steps (sequential).**
 
 ---
 
-#### Step 1 — Dedup cleanup + tag error fixes `[SEQ]` — 1 agent
+#### Step 1 — Implement RRF Fusion `[SEQ]` — 1 agent
 
-> **Launch condition:** Phase I complete.
-> **File ownership:** Agent writes to VM SQLite via SSH. No local file changes.
+> **Launch condition:** Round 1 complete (baseline numbers exist).
+> **File ownership:** Agent modifies `smart_extractor.py` (`cmd_recall()` + new `rrf_fuse()` function).
 
-- [x] (2026-03-27) Query Tailscale/watchdog/chromeos memories — found 49 candidates
-- [x] (2026-03-27) Identified 5 canonical versions to keep (architecture, decisions, hardening)
-- [x] (2026-03-27) Soft-deleted 44 duplicates (active=0)
-- [x] (2026-03-27) Removed `decided:2026-02-23` from 29 non-decision memories
-- [x] (2026-03-27) Fixed 4 dual-confidence-tag memories (kept confidence:low)
-- [ ] Add `type:fact` to TAG_REGISTRY.md — moved to Step 3 P1-B (separate agent)
-- [x] (2026-03-27) **Verify:** Active memory count = 68 (was 112) — PASS
+- [ ] Add `rrf_fuse(query_results, k=10)` function to `smart_extractor.py`
+- [ ] Replace dedup+priority sort block in `cmd_recall()` with RRF fusion call
+- [ ] Collect per-query results as separate lists before fusing
+- [ ] Use tag priority as tiebreaker in RRF sort
+- [ ] **Verify:** `python3 -c "from smart_extractor import rrf_fuse; print('import ok')"` — no import error
 
 ---
 
-#### Step 2 — Re-extract baseline `[SEQ]` — 1 agent
-
-> **Launch condition:** Step 1 complete (clean data).
-> **File ownership:** Agent writes to `plans/tag-analysis-mar27/session*-current-extraction.json`.
-
-- [ ] Dry-run extraction on 3 representative sessions (current prompt, no storage)
-- [ ] Save extraction output locally for A/B comparison in Phase III
-- [ ] Count tag types used across extractions
-- [ ] Flag `type:context` or `type:insight` that should be more specific
-- [ ] **Verify:** 3 extraction JSON files exist in `plans/tag-analysis-mar27/`
-
----
-
-#### Step 3 — Tag normalization + registry updates `[P1-A, P1-B]` — 2 agents in parallel
+#### Step 2 — Re-run Benchmark + Judge `[SEQ]` — 1 agent
 
 > **Launch condition:** Step 1 complete.
-> **File ownership:** P1-A owns VM SQLite tags. P1-B owns TAG_REGISTRY.md.
+> **File ownership:** Agent writes `quality/data/round2-results.json` and `quality/data/round2-scores.json`.
 
-**`[P1-A]` Format normalization (VM SQLite)** — COMPLETE (2026-03-27)
-- [x] (2026-03-27) Built normalization map: tags:geo→domain:geo, tags:app-launch→domain:product, tag:folder→domain:ops, domain:architecture→type:architecture
-- [x] (2026-03-27) Applied 9 REPLACE queries to SQLite on VM
-- [x] (2026-03-27) **Verify:** Re-run tag distribution — no more tags: or tag: prefix anti-patterns
-
-**`[P1-B]` Registry updates (TAG_REGISTRY.md)** — COMPLETE (2026-03-27)
-- [x] (2026-03-27) Added `type:fact` — "A verifiable, objective observation or measurement"
-- [x] (2026-03-27) Added `type:research` — "Investigation or exploration of a topic, tool, or approach"
-- [x] (2026-03-27) Added `domain:career`, `domain:ops`
-- [x] (2026-03-27) Added `pin:` dimension (critical/important/reference) with rules
-- [x] (2026-03-27) Added `permanent:true` tag with rules
-- [x] (2026-03-27) **Verify:** `grep -c` returns 6 new entries — PASS
+- [ ] Run: `python3 quality/recall/run_benchmark.py --benchmark quality/data/recall_benchmark.json --db ~/.agent-memory/memory.db --output quality/data/round2-results.json`
+- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round2-results.json --dimensions relevance,noise --model gpt-4.1-mini --output quality/data/round2-scores.json`
+- [ ] **Verify:** `test -f quality/data/round2-scores.json && echo "scores exist"`
 
 ---
 
-#### Step 4 — Scoring profile + access tracking `[P2-A, P2-B]` — 2 agents in parallel
+#### Step 3 — Compare Round 1 → Round 2 `[SEQ]` — 1 agent
 
-> **Launch condition:** Step 1 complete (can run parallel with Step 3).
-> **File ownership:** P2-A owns `memory_bridge.py` index definition. P2-B owns `smart_extractor.py` recall function.
+> **Launch condition:** Step 2 complete.
+> **File ownership:** Agent reads score files, documents deltas in this progress.md.
 
-**`[P2-A]` Azure scoring profile (memory_bridge.py)** — DEFERRED to Step 7
-- [ ] Create staging index `clawbot-memory-store-staging`
-- [ ] Add `memory-relevance` scoring profile (80-day freshness 2.0x, importance 2.0x, content 1.5x, tags 1.2x)
-- [ ] Set `scoring_profile="memory-relevance"` in search call
-- [ ] Test recall against staging
-- [ ] **Verify:** Recall benchmark on staging shows recency-boosted results
-- **Note:** Requires Azure index schema change (may need delete+recreate). Doing this during GATE step with full sync.
+- [ ] Run: `python3 quality/recall/regression_gate.py --before quality/data/round1-scores.json --after quality/data/round2-scores.json`
+- [ ] Document delta for Precision@5, MRR, weighted score (expected: +8-10%)
+- [ ] Confirm no regression (delta >= -0.05 on all metrics)
+- [ ] **Verify:** Regression gate passes (all metrics above thresholds)
 
-**`[P2-B]` Increment access_count (smart_extractor.py)** — COMPLETE (2026-03-27)
-- [x] (2026-03-27) Added access_count increment in `cmd_recall` after memories sorted/sliced
-- [x] (2026-03-27) Fixed pre-existing bug: `_parse_mem_line` now correctly parses `[mem_id] (tags) content` format
-- [x] (2026-03-27) Best-effort try/except — can never break recall flow
-- [ ] Deploy to VM (pending — will deploy all changes together in Step 7)
-- [ ] **Verify:** Trigger recall, check access_count incremented in SQLite
+#### Success Criteria (Round 2)
+
+1. `rrf_fuse()` function exists in `smart_extractor.py`
+2. `cmd_recall()` uses RRF instead of dedup+priority
+3. `quality/data/round2-scores.json` has 40 judge scores
+4. Before/after comparison documented with deltas
+5. Expected: +8-10% on Precision@5
 
 ---
 
-#### Step 5 — Lifecycle tags `[P3-A, P3-B]` — 2 agents in parallel
+### Round 3 — Query Quality Bundle
 
-> **Launch condition:** Step 3 P1-B complete (TAG_REGISTRY updated).
-> **File ownership:** P3-A owns `memory_bridge.py` decay logic. P3-B owns `mem.py` CLI.
-
-**`[P3-A]` permanent:true tag + decay exemption** — COMPLETE (2026-03-27)
-- [x] (2026-03-27) Added `should_decay()` function to `memory_bridge.py` — checks for `permanent:true` and `pin:` tags
-- [x] (2026-03-27) Updated `categorize_memory()` to use tags first, content heuristics as fallback
-- [x] (2026-03-27) Updated call site to pass tags to `categorize_memory(content, tags)`
-- [x] (2026-03-27) **Verify:** Function logic correct — permanent/pinned memories return False
-
-**`[P3-B]` Pin system in mem.py CLI** — COMPLETE (2026-03-27)
-- [x] (2026-03-27) Added `--pin` argument to `add` subcommand (choices: critical/important/reference)
-- [x] (2026-03-27) Added `pin` subcommand: `mem.py pin MEM_ID critical`
-- [x] (2026-03-27) Added `unpin` subcommand: `mem.py unpin MEM_ID` (resets importance to 5)
-- [x] (2026-03-27) PIN_IMPORTANCE dict: critical=10, important=9, reference=8
-- [ ] Add pin detection rule to `smart_extractor.py` extraction prompt — deploy in Step 7
-- [ ] **Verify:** `python3 mem.py add "test" --pin critical` stores with pin:critical tag, importance=10 — test on VM after deploy
-
----
-
-#### Step 6 — Stale cleanup + quarterly review `[SEQ]` — 1 agent
-
-> **Launch condition:** Steps 4 and 5 complete.
-> **File ownership:** Agent creates `memory_lifecycle.py` + cron entry.
-
-- [x] (2026-03-27) Created `memory_lifecycle.py` with `cleanup_stale_memories()` + `list_permanent()`
-- [x] (2026-03-27) Rule: >90 days + access_count=0 + not pinned/permanent → soft delete
-- [x] (2026-03-27) Supports `--dry-run` flag, logs to `~/.openclaw/logs/memory-lifecycle/`
-- [ ] Add monthly cron on VM (1st of month, 22:00 UTC) — deploy in Step 7
-- [ ] Document quarterly permanent review process
-- [ ] **Verify:** Dry-run cleanup shows 0 candidates (all memories are <90 days old currently)
-
----
-
-#### Step 6a — Memory health monitor `[SEQ]` — 1 agent
-
-> **Launch condition:** Step 6 complete (lifecycle code exists).
-> **File ownership:** Agent modifies `mem.py` (adds `status` subcommand).
-
-**Goal:** Add `mem.py status` command that scores memory health against a 10-metric rubric, plus a `--log-only` flag for daily cron.
-
-**Health rubric (10 metrics, pass = 7/10 GREEN):**
-
-| Metric | Green | Yellow | Red |
-|--------|-------|--------|-----|
-| Anchor coverage (type: + domain:) | >80% | 60-80% | <60% |
-| Tag diversity (max single tag %) | <25% | 25-40% | >40% |
-| Recall rate (% recalled in 30d) | >10% | 1-10% | 0% |
-| Stale ratio (>90d, 0 access) | <15% | 15-30% | >30% |
-| Duplicate density (word overlap) | <10% | 10-20% | >20% |
-| Pin/permanent ratio | <30% | 30-50% | >50% |
-| Growth (new memories in 30d) | 10-100 | 1-10 or 100-200 | 0 or >200 |
-| Avg tags per memory | 3-6 | 2-3 or 6-7 | <2 or >7 |
-| Importance spread | 3+ levels | 2 levels | 1 level (flat) |
-| Age distribution (max single-day %) | <50% | 50-70% | >70% |
-
-**Score interpretation:**
-
-| Score | Rating | Label |
-|-------|--------|-------|
-| 9-10 | Excellent | `EXCELLENT` |
-| 7-8 | Healthy (pass) | `HEALTHY` |
-| 5-6 | Needs attention | `ATTENTION` |
-| 3-4 | Unhealthy | `UNHEALTHY` |
-| 0-2 | Broken | `BROKEN` |
-
-- [x] (2026-03-27) Created `mem_status.py` — 10-metric scoring engine with thresholds
-- [x] (2026-03-27) Created `mem_display.py` — box visual dashboard + cron one-liner
-- [x] (2026-03-27) Added `cmd_status()` to `mem.py` with lazy imports
-- [x] (2026-03-27) Added `--log-only` flag for cron one-liner output
-- [x] (2026-03-27) Added `status` subcommand to argparse
-- [ ] Add daily cron on VM: `0 20 * * *` runs `mem.py status --log-only` — deploy in Step 7
-- [ ] **Verify:** `python3 mem.py status` outputs health dashboard — test on VM after deploy
-
----
-
-#### Step 7 — GATE: Verify + sync `[GATE]` — 1 agent
-
-> **Launch condition:** All Steps 1-6 complete.
-
-- [ ] Re-run tag distribution analysis — compare to Step 3 baseline
-- [ ] Confirm memory count reduced (dedup applied)
-- [ ] Confirm scoring profile active on staging
-- [ ] Run `memory_bridge.py sync --full` to push all changes to Azure
-- [ ] Capture post-normalization baseline scores
-- [ ] **Verify:** Azure AI Search returns results with scoring profile applied
-
-#### Success Criteria (Phase II)
-
-1. Memory count reduced from 112 to ~75-80 (duplicates removed)
-2. No memories with wrong `decided:` tags on non-decisions
-3. No dual-confidence-tag conflicts
-4. `type:fact` exists in TAG_REGISTRY.md
-5. Scoring profile `memory-relevance` active on staging index
-6. `access_count` increments on recall
-7. `pin` and `unpin` CLI commands work
-8. `permanent:true` exempted from decay logic
-9. Monthly cleanup cron installed
-10. Azure AI Search fully synced with cleaned data
-11. `mem.py status` outputs health dashboard with 10-metric rubric
-12. Daily health check cron installed (20:00 UTC)
-
----
-
-### Phase III — Extraction Prompt Tuning & Validation (Steps 6-9)
-
-**Plan:** `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md`
-**Goal:** Implement 5 extraction prompt improvements, A/B test each layer individually, re-tag existing memories with winning prompt.
-**Research:** `plans/research-log.md` (2026-03-28 entries — memory tags, extraction prompts, Azure scoring)
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Goal:** Three improvements to the query side — dynamic topic expansion with few-shot, multi-turn context in hook, trivial turn gate. All modify query construction, not the index.
 
 #### Max Parallel Agents
 
 | Step | Agents | Description |
 |------|--------|-------------|
-| Step 1 | 1 | [SEQ] — Re-extract baseline (3 stratified sessions, current prompt) |
-| Step 2 | 1 | [SEQ] — Implement Layer 1 (definitions + counts) |
-| Step 3 | 1 | [SEQ] — Implement Layer 2 (few-shot examples + reasoning field) |
-| Step 4 | 1 | [SEQ] — Implement Layer 3 (strict: true JSON Schema) |
-| Step 5 | 1 | [SEQ] — Implement Layer 4 (closed type: vocabulary) |
-| Step 6 | 1 | [SEQ] — Implement Layer 5 (keyword extraction kw: tags) |
-| Step 7 | 1 | [SEQ] — Layer-by-layer A/B test (6 runs x 3 sessions = 18 extractions) |
-| Step 8 | 1 | [SEQ] — Re-tag existing 68 memories with winning prompt |
-| Step 9 | 1 | [GATE] — Final verify + sync |
+| Step 1 | 1 | [SEQ] — Dynamic topic expansion + few-shot in smart_extractor.py |
+| Step 2 | 1 | [SEQ] — Multi-turn context in handler.js |
+| Step 3 | 1 | [SEQ] — Trivial turn gate in handler.js |
+| Step 4 | 1 | [SEQ] — Re-run benchmark + judge + compare Round 2 → 3 |
 
-**Total: 9 steps, sequential (each layer builds on the previous).**
-
-**Note:** Steps 2-6 are sequential because each layer is cumulative — Layer 2 includes Layer 1, etc. The A/B test in Step 7 runs all 6 variants (baseline + 5 layers) to produce a per-layer lift chart.
+**Total: 4 agent dispatches across 4 steps (sequential — Steps 1-3 modify code, Step 4 benchmarks all changes together).**
 
 ---
 
-#### Step 1 — Re-extract baseline `[SEQ]` — 1 agent
+#### Step 1 — Dynamic Topic Expansion + Few-Shot `[SEQ]` — 1 agent
 
-> **Launch condition:** Phase II complete.
-> **File ownership:** Agent writes to `plans/tag-analysis-mar27/ab-run-0-*.json`
+> **Launch condition:** Round 2 complete.
+> **File ownership:** Agent modifies `smart_extractor.py` (`_expand_topic_queries()`).
 
-- [x] (2026-03-28) Dry-run extraction on 3 stratified sessions — ran locally via az login Entra auth
-- [x] (2026-03-28) Saved: `ab-run-0-large.json` (4 facts), `ab-run-0-medium.json` (10), `ab-run-0-small.json` (4)
-- [x] (2026-03-28) **Verify:** 3 JSON files exist — PASS (18 total baseline facts)
+- [ ] Add `FEW_SHOT_EXAMPLES` constant with 5 domain-specific expansion examples
+- [ ] Add LLM fallback in `_expand_topic_queries()` — if no static map match, call GPT-4.1-mini with few-shot prompt
+- [ ] Cap expansions at 8 unique queries via `dict.fromkeys()`
+- [ ] **Verify:** `python3 -c "from smart_extractor import _expand_topic_queries; r=_expand_topic_queries('tailscale'); print(len(r), 'queries')"` — returns > 1 query
 
 ---
 
-#### Step 2 — Layer 1: Definitions + usage counts `[SEQ]` — 1 agent
+#### Step 2 — Multi-Turn Retrieval Context `[SEQ]` — 1 agent
 
 > **Launch condition:** Step 1 complete.
-> **File ownership:** Agent modifies `smart_extractor.py` (extract_known_tags, tag_ref builder)
+> **File ownership:** Agent modifies `handler.js` (message extraction logic).
 
-- [x] (2026-03-28) All Layer 1 changes implemented in A/B test runner
-- [x] (2026-03-28) Dry-run: `ab-run-1-large.json` (5), `ab-run-1-medium.json` (14), `ab-run-1-small.json` (3) — 22 total
-- [x] (2026-03-28) **Verify:** tag_ref includes definitions + counts — PASS
+- [ ] Change hook to pass last 3 messages (any role) instead of only last user message
+- [ ] Join messages with ` | ` separator, truncate to 300 chars
+- [ ] Preserve last user message as primary query for recall
+- [ ] **Verify:** `node -e "const h=require('./handler.js'); console.log('handler loads')"` — no syntax errors
 
 ---
 
-#### Step 3 — Layer 2: Few-shot examples + reasoning `[SEQ]` — 1 agent
+#### Step 3 — Trivial Turn Gate `[SEQ]` — 1 agent
 
 > **Launch condition:** Step 2 complete.
-> **File ownership:** Agent modifies `smart_extractor.py` (prompt + JSON schema)
+> **File ownership:** Agent modifies `handler.js` (early return before recall).
 
-- [x] (2026-03-28) Added reasoning field + 3 few-shot examples (type:fact, type:pattern, type:error_pattern)
-- [x] (2026-03-28) Dry-run: `ab-run-2-*` — 14 total (4+8+2). Facts include reasoning field.
-- [x] (2026-03-28) **Verify:** Reasoning field present — PASS
+- [ ] Add `TRIVIAL_PATTERNS` regex: `ok|okay|sure|thanks|thank you|got it|yes|no|yep|nope|cool|nice|hello|hi|hey`
+- [ ] Gate: if `query.length < 25 && TRIVIAL_PATTERNS.test(query.trim())` → return `{}` (no context injection)
+- [ ] Place gate before any recall calls
+- [ ] **Verify:** `node -e "const p=/^(ok|okay|sure|thanks|thank you|got it|yes|no|yep|nope|cool|nice|hello|hi|hey)\\b/i; console.log(p.test('ok'));"` — returns true
 
 ---
 
-#### Step 4 — Layer 3: strict: true JSON Schema `[SEQ]` — 1 agent
+#### Step 4 — Re-run Benchmark + Judge + Compare `[SEQ]` — 1 agent
+
+> **Launch condition:** Steps 1-3 complete.
+> **File ownership:** Agent writes `quality/data/round3-results.json` and `quality/data/round3-scores.json`.
+
+- [ ] Run: `python3 quality/recall/run_benchmark.py --benchmark quality/data/recall_benchmark.json --db ~/.agent-memory/memory.db --output quality/data/round3-results.json`
+- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round3-results.json --dimensions relevance,noise --model gpt-4.1-mini --output quality/data/round3-scores.json`
+- [ ] Run: `python3 quality/recall/regression_gate.py --before quality/data/round2-scores.json --after quality/data/round3-scores.json`
+- [ ] Document deltas in this progress.md
+- [ ] **Verify:** Regression gate passes
+
+#### Success Criteria (Round 3)
+
+1. `_expand_topic_queries()` has LLM fallback with few-shot examples
+2. `handler.js` passes last 3 messages for multi-turn context
+3. `handler.js` has trivial turn gate that skips recall for ack messages
+4. `quality/data/round3-scores.json` has 40 judge scores
+5. Before/after comparison documented
+6. Topic expansion covers 100% of queries (no "no static match" failures)
+
+---
+
+### Round 4 — Embed/Scoring Quality
+
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Goal:** Improve the index side — contextual metadata prefix on embeddings, access_count scoring boost, verify Azure text_weights behavior. Requires Azure re-index at deploy time.
+
+#### Max Parallel Agents
+
+| Step | Agents | Description |
+|------|--------|-------------|
+| Step 1 | 1 | [SEQ] — Contextual metadata prefix in memory_bridge.py |
+| Step 2 | 1 | [SEQ] — access_count logarithmic boost in scoring profile |
+| Step 3 | 1 | [SEQ] — Verify Azure text_weights behavior |
+| Step 4 | 1 | [SEQ] — Re-run benchmark + judge + compare Round 3 → 4 |
+
+**Total: 4 agent dispatches across 4 steps (sequential).**
+
+---
+
+#### Step 1 — Contextual Metadata Prefix `[SEQ]` — 1 agent
+
+> **Launch condition:** Round 3 complete.
+> **File ownership:** Agent modifies `memory_bridge.py` (document preparation for Azure sync).
+
+- [ ] Add `prepare_embed_content(fact)` function — prepends `[Project: X | Tags: Y | Date: Z]` before fact content
+- [ ] Use prefix only for embedding input — display content stays unchanged
+- [ ] Call `prepare_embed_content()` in sync pipeline before embedding generation
+- [ ] **Verify:** `python3 -c "from memory_bridge import prepare_embed_content; r=prepare_embed_content({'content':'test','project':'oclaw','tags':'type:fact'}); print(r)"` — shows prefixed content
+
+---
+
+#### Step 2 — access_count Scoring Boost `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 1 complete.
+> **File ownership:** Agent modifies `memory_bridge.py` (`ensure_memory_index()` scoring profile).
+
+- [ ] Add `MagnitudeScoringFunction` for `access_count` field — boost=1.3, logarithmic interpolation, range 0-20
+- [ ] Add to existing scoring profile functions list
+- [ ] **Verify:** `python3 -c "from memory_bridge import ensure_memory_index; print('scoring profile loads')"` — no import error
+
+---
+
+#### Step 3 — Verify Azure text_weights `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 2 complete.
+> **File ownership:** No file changes — diagnostic only. Document findings in this progress.md.
+
+- [ ] Run: `az search service show --name oclaw-search --resource-group oclaw-rg --query "semanticSearch" -o tsv`
+- [ ] Determine if `text_weights` in scoring profiles survive semantic reranking
+- [ ] If dead code: remove `text_weights` from scoring profile definition in `memory_bridge.py`
+- [ ] Document decision: text_weights kept or removed
+- [ ] **Verify:** Decision documented in Key Learnings table
+
+---
+
+#### Step 4 — Re-run Benchmark + Judge + Compare `[SEQ]` — 1 agent
+
+> **Launch condition:** Steps 1-3 complete.
+> **File ownership:** Agent writes `quality/data/round4-results.json` and `quality/data/round4-scores.json`.
+
+- [ ] Run: `python3 quality/recall/run_benchmark.py --benchmark quality/data/recall_benchmark.json --db ~/.agent-memory/memory.db --output quality/data/round4-results.json`
+- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round4-results.json --dimensions relevance,noise --model gpt-4.1-mini --output quality/data/round4-scores.json`
+- [ ] Run: `python3 quality/recall/regression_gate.py --before quality/data/round3-scores.json --after quality/data/round4-scores.json`
+- [ ] Document deltas in this progress.md
+- [ ] **Verify:** Regression gate passes
+
+#### Stop Gate After Round 4
+
+```
+IF weighted_score >= 3.5 AND precision@5 >= 0.60:
+    → Skip to Round 6 (deploy)
+ELSE:
+    → Continue to Round 5 (expand benchmark for deeper diagnosis)
+```
+
+- [ ] Evaluate stop gate conditions
+- [ ] Document decision: Round 5 or skip to Round 6
+
+#### Success Criteria (Round 4)
+
+1. `prepare_embed_content()` exists in `memory_bridge.py`
+2. `access_count` magnitude scoring function added to scoring profile
+3. Azure `text_weights` behavior documented (kept or removed)
+4. `quality/data/round4-scores.json` has 40 judge scores
+5. Before/after comparison documented
+6. Stop gate evaluated — decision documented
+
+---
+
+### Round 5 — Full Benchmark (CONDITIONAL)
+
+> **Only run if:** Stop gate after Round 4 NOT met (`weighted_score < 3.5` OR `precision@5 < 0.60`).
+> **Skip if:** Targets met after Round 4.
+
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Goal:** Expand to 80 queries + all 6 judge dimensions for comprehensive diagnostic. Identify which query categories and dimensions need further improvement.
+
+#### Max Parallel Agents
+
+| Step | Agents | Description |
+|------|--------|-------------|
+| Step 1 | 1 | [SEQ] — Expand benchmark to 80 queries across 6 categories |
+| Step 2 | 1 | [SEQ] — Run recall + judge on all 6 dimensions (GPT-4.1-mini, 480 calls) |
+| Step 3 | 1 | [SEQ] — Final validation with Claude Sonnet (cross-family, 480 calls) |
+| Step 4 | 1 | [SEQ] — Diagnostic report by category + dimension |
+
+**Total: 4 agent dispatches across 4 steps (sequential).**
+
+---
+
+#### Step 1 — Expand to 80 Queries `[SEQ]` — 1 agent
+
+> **Launch condition:** Stop gate NOT met after Round 4.
+> **File ownership:** Agent creates `quality/data/recall_benchmark_full.json`.
+
+- [ ] Generate 16 verbatim fact recall queries
+- [ ] Generate 16 temporal ordering queries
+- [ ] Generate 12 knowledge update queries (superseded facts)
+- [ ] Generate 12 multi-hop synthesis queries (combining 2+ memories)
+- [ ] Generate 12 hard negative queries (similar topic, wrong answer)
+- [ ] Generate 12 abstention queries (no relevant memory exists)
+- [ ] Save to `quality/data/recall_benchmark_full.json`
+- [ ] **Verify:** `python3 -c "import json; d=json.load(open('quality/data/recall_benchmark_full.json')); print(f'{len(d)} queries'); assert len(d)==80"` — exactly 80
+
+---
+
+#### Step 2 — Judge on All 6 Dimensions (GPT-4.1-mini) `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 1 complete.
+> **File ownership:** Agent writes `quality/data/round5-results.json` and `quality/data/round5-scores.json`.
+
+- [ ] Run benchmark with 80 queries
+- [ ] Judge on all 6 dimensions: relevance, noise, specificity, freshness, actionability, completeness — 480 calls
+- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round5-results.json --dimensions relevance,noise,specificity,freshness,actionability,completeness --model gpt-4.1-mini --output quality/data/round5-scores.json`
+- [ ] **Verify:** `python3 -c "import json; d=json.load(open('quality/data/round5-scores.json')); print(f'{len(d[\"scores\"])} judge scores')"` — 480 scores
+
+---
+
+#### Step 3 — Final Validation with Claude Sonnet `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 2 complete.
+> **File ownership:** Agent writes `quality/data/round5-scores-sonnet.json`.
+
+- [ ] Re-judge all 80 queries x 6 dimensions with Claude Sonnet 4.6 — unbiased cross-family validation
+- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round5-results.json --dimensions relevance,noise,specificity,freshness,actionability,completeness --model claude-sonnet-4-6 --output quality/data/round5-scores-sonnet.json`
+- [ ] **Verify:** `test -f quality/data/round5-scores-sonnet.json && echo "sonnet scores exist"`
+
+---
+
+#### Step 4 — Diagnostic Report `[SEQ]` — 1 agent
 
 > **Launch condition:** Step 3 complete.
-> **File ownership:** Agent modifies `smart_extractor.py` (response_format)
+> **File ownership:** Agent documents results in this progress.md.
 
-- [x] (2026-03-28) Added strict: true JSON schema with field ordering
-- [x] (2026-03-28) Dry-run: `ab-run-3-*` — 18 total (3+14+1). Structured output enforced.
-- [x] (2026-03-28) **Verify:** Zero format errors — PASS
+- [ ] Compute overall weighted score
+- [ ] Compute per-category scores (verbatim, temporal, knowledge update, multi-hop, hard negatives, abstention)
+- [ ] Compute per-dimension scores (relevance, noise, specificity, freshness, actionability, completeness)
+- [ ] Compare GPT-4.1-mini vs Claude Sonnet scores (inter-judge agreement)
+- [ ] Document all scores in this progress.md
+- [ ] **Verify:** All 6 categories and 6 dimensions have documented scores
 
----
+#### Success Criteria (Round 5)
 
-#### Step 5 — Layer 4: Closed type: vocabulary `[SEQ]` — 1 agent
-
-> **Launch condition:** Step 4 complete.
-> **File ownership:** Agent modifies `smart_extractor.py` (prompt wording)
-
-- [x] (2026-03-28) Closed type: vocabulary (10 values), domain: kept open
-- [x] (2026-03-28) Dry-run: `ab-run-4-*` — 16 total (2+11+3)
-- [x] (2026-03-28) **Verify:** No invented type: tags — PASS
-
----
-
-#### Step 6 — Layer 5: Keyword extraction `[SEQ]` — 1 agent
-
-> **Launch condition:** Step 5 complete.
-> **File ownership:** Agent modifies `smart_extractor.py` (prompt)
-
-- [x] (2026-03-28) Added kw: keyword extraction instruction
-- [x] (2026-03-28) Dry-run: `ab-run-5-*` — 15 total (1+12+2). Facts include kw: tags.
-- [x] (2026-03-28) **Verify:** kw: tags present — PASS
+1. 80-query benchmark exists with 6 categories
+2. 480 GPT-4.1-mini judge scores computed
+3. 480 Claude Sonnet judge scores computed (cross-family validation)
+4. Per-category + per-dimension diagnostic report documented
+5. Inter-judge agreement measured
 
 ---
 
-#### Step 7 — Layer-by-layer A/B scoring `[SEQ]` — 1 agent
+### Round 6 — Deploy to VM
 
-> **Launch condition:** Steps 1-6 complete (all 6 runs saved).
-> **File ownership:** Agent writes `plans/tag-analysis-mar27/step8-layer-ab-comparison.md`
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Goal:** Ship validated improvements to production (OpenClaw VM). Run Azure benchmark as final check. Restart gateway and smoke test.
 
-**Research-informed rubric (2026-03-28 — LLM-as-judge best practices):**
+#### Max Parallel Agents
 
-**Structure:**
-- 6 isolated judge calls per memory (not 1 bundled — Anthropic guidance)
-- CoT before score: `{"critique": "...", "score": N}` — reasoning first
-- Blind labels: variants as "Alpha/Beta", randomized per call
-- Swap-and-re-judge for any pairwise comparisons
+| Step | Agents | Description |
+|------|--------|-------------|
+| Step 1 | 1 | [SEQ] — scp changed files to VM |
+| Step 2 | 1 | [SEQ] — Re-index Azure (contextual prefix + scoring profile) |
+| Step 3 | 1 | [SEQ] — Run Azure benchmark on VM + compare local vs Azure |
+| Step 4 | 1 | [SEQ] — Restart gateway + smoke test |
 
-**Scoring (mixed scales):**
-- Binary (0/1): fact accuracy, atomicity
-- 1-3 with anchors: tag accuracy, tag specificity, anchor completeness, ClawBot utility
-
-**Statistics (N=18 = screening budget):**
-- Report directional consistency (3/3 sessions = high confidence)
-- Bayesian Beta-Binomial for binary dimensions
-- Raw counts, not percentages
-- Effect size threshold: 0.5+ on 1-3 scale
-
-**Substeps:**
-- [x] (2026-03-28) Scored all 103 facts across 6 runs with 6-dimension rubric
-- [x] (2026-03-28) Binary scoring for fact accuracy + atomicity
-- [x] (2026-03-28) 1-3 anchored scoring for tag accuracy, specificity, anchors, utility
-- [x] (2026-03-28) Lift chart: R2 (+Few-shot) won at 0.968 weighted avg (+12.8% over baseline 0.858)
-- [x] (2026-03-28) Directional: R1 = 3/3 sessions (most reliable), R2 = 2/3 (highest score)
-- [x] (2026-03-28) Layers 1+2 keep (>5% each). Layers 3-5 drop (full stack scored worse than R2 alone)
-- [x] (2026-03-28) Report written to `plans/tag-analysis-mar27/step8-layer-ab-comparison.md`
-- [x] (2026-03-28) **Verify:** Lift chart complete, decision: use L1+L2 only — PASS
-
-**Finding:** More layers = worse. Full stack (R5=0.911) < R2 alone (0.968). Atomicity degrades with richer prompts. Keywords as post-processing, not in prompt.
+**Total: 4 agent dispatches across 4 steps (sequential — each depends on prior).**
 
 ---
 
-#### Step 8 — Re-tag existing memories `[SEQ]` — 1 agent
+#### Step 1 — Deploy Changed Files `[SEQ]` — 1 agent
 
-> **Launch condition:** Step 7 cumulative score > 3.5/5.
-> **File ownership:** Agent writes to VM SQLite via SSH.
+> **Launch condition:** Round 4 (or Round 5) complete with targets met.
+> **File ownership:** Agent deploys via scp to VM paths.
 
-- [x] (2026-03-28) Exported all 68 memories, re-tagged with winning L1+L2 prompt via Entra auth
-- [x] (2026-03-28) Reasoning field included for every tag choice
-- [x] (2026-03-28) Diff: 68/68 changed — saved to `plans/tag-analysis-mar27/step9-retag-diff.json`
-- [x] (2026-03-28) Applied to VM SQLite
-- [x] (2026-03-28) Stripped auto-assigned pin:/permanent: (42 memories) — user-only rule violated by re-tag prompt
-- [x] (2026-03-28) **Verify:** `mem.py status` = 6/10 ATTENTION. Anchor coverage 100%, tag diversity 14.7%
-
-**Lesson learned:** `pin:` and `permanent:` tags must NOT appear in the extraction/re-tagging prompt. They are user-applied only. The re-tag prompt saw them in TAG_REGISTRY and applied them to 42 memories. Fixed by stripping post-hoc.
+- [ ] scp `smart_extractor.py` → `oclaw:~/.openclaw/workspace/skills/clawbot-memory/`
+- [ ] scp `memory_bridge.py` → `oclaw:~/.openclaw/workspace/skills/clawbot-memory/`
+- [ ] scp `handler.js` → `oclaw:~/.openclaw/hooks/clawbot-memory/`
+- [ ] scp `quality/` directory → `oclaw:~/.openclaw/workspace/skills/clawbot-memory/quality/`
+- [ ] **Verify:** `ssh oclaw "ls -la ~/.openclaw/workspace/skills/clawbot-memory/smart_extractor.py ~/.openclaw/workspace/skills/clawbot-memory/memory_bridge.py ~/.openclaw/hooks/clawbot-memory/handler.js"` — all 3 files exist with recent timestamps
 
 ---
 
-#### Step 9 — GATE: Final verify + sync `[GATE]` — 1 agent
+#### Step 2 — Re-index Azure `[SEQ]` — 1 agent
 
-> **Launch condition:** Step 8 complete.
+> **Launch condition:** Step 1 complete (files deployed).
+> **File ownership:** No local file changes — runs on VM.
 
-- [x] (2026-03-28) `memory_bridge.py sync --full` — 68 memories synced to Azure
-- [x] (2026-03-28) `mem.py status` = 6/10 ATTENTION (recall rate + age distribution will improve over time)
-- [x] (2026-03-28) Final `smart_extractor.py` deployed to VM (winning L1+L2 variant)
-- [x] (2026-03-28) Azure search verified — returns results with improved tags
-- [ ] Claude-as-judge re-validation — deferred to next session (need new extraction data first)
-- [x] (2026-03-28) **Verify:** Azure search returns re-tagged results — PASS
+- [ ] Run: `ssh oclaw "cd ~/.openclaw/workspace/skills/clawbot-memory && source .venv/bin/activate && python3 memory_bridge.py sync --full"`
+- [ ] Confirm all memories re-embedded with contextual prefix
+- [ ] Confirm scoring profile updated with access_count boost
+- [ ] **Verify:** `ssh oclaw "cd ~/.openclaw/workspace/skills/clawbot-memory && source .venv/bin/activate && python3 memory_bridge.py sync --status"` — shows sync complete
 
-#### Success Criteria (Phase III)
+---
 
-1. Lift chart produced — per-layer impact measured with 6 isolated judge calls per dimension
-2. Directional consistency documented (3/3 sessions = high confidence per layer)
-3. Binary dimensions (fact accuracy, atomicity) show pass rate improvement
-4. Graded dimensions (tag accuracy, specificity, anchors, utility) show 0.5+ mean improvement on 1-3 scale
-5. `type:context` overuse reduced by >30%
-6. Zero format bugs after Layer 3 (strict JSON schema)
-7. All 68 memories re-tagged with winning prompt variant
-8. `mem.py status` health score maintained at 7/10 or higher
-9. Azure AI Search synced with re-tagged data
-10. Research rubric methodology documented in plan for reproducibility
+#### Step 3 — Azure Benchmark + Compare `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 2 complete (Azure re-indexed).
+> **File ownership:** Agent creates `quality/recall/compare_backends.py` and `quality/data/round6-azure-results.json`.
+
+- [ ] Run Azure benchmark on VM: `ssh oclaw "cd ~/.openclaw/workspace/skills/clawbot-memory && source .venv/bin/activate && python3 quality/recall/run_benchmark.py --backend azure --benchmark quality/data/recall_benchmark.json --output /tmp/vm-azure-results.json"`
+- [ ] Copy results: `scp oclaw:/tmp/vm-azure-results.json quality/data/round6-azure-results.json`
+- [ ] Create `quality/recall/compare_backends.py` — compares local vs Azure results
+- [ ] Run: `python3 quality/recall/compare_backends.py --local quality/data/round4-results.json --azure quality/data/round6-azure-results.json`
+- [ ] Expected: Azure scores higher (hybrid search + semantic reranking > keyword-only)
+- [ ] **Verify:** Comparison report shows Azure >= local on weighted score
+
+---
+
+#### Step 4 — Restart Gateway + Smoke Test `[SEQ]` — 1 agent
+
+> **Launch condition:** Step 3 complete (Azure benchmark validated).
+> **File ownership:** No file changes — operational verification.
+
+- [ ] Run: `ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"`
+- [ ] Wait for gateway to come back up
+- [ ] Send a test message through ClawBot and verify `<clawbot_context>` appears with relevant memories
+- [ ] Confirm trivial turn gate works — "ok" should not trigger recall
+- [ ] **Verify:** `ssh oclaw "systemctl --user status openclaw-gateway.service --no-pager"` — shows active (running)
+
+#### Success Criteria (Round 6)
+
+1. All 3 changed files deployed to VM (smart_extractor.py, memory_bridge.py, handler.js)
+2. Azure re-indexed with contextual prefix and updated scoring profile
+3. Azure benchmark scores >= local benchmark scores
+4. Gateway restarted and healthy
+5. Smoke test confirms `<clawbot_context>` injection working
+6. Trivial turn gate confirmed working (no recall for "ok", "thanks")

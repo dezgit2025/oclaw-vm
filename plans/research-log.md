@@ -1721,3 +1721,1204 @@ This research surfaces two candidate design decisions:
 Sources include: Anthropic official docs (multishot prompting guide, Claude 4 best practices), OpenAI official docs (GPT-5.4 prompt guidance, Structured Outputs guide), three arXiv papers from Jan–Apr 2026 (ProMem 2601.04463, Mem0 2504.19413, SCRPO 2512.05387), ICCV 2025W workshop paper on multi-label classification, and Sagepub 2025 peer-reviewed classification study. All sources dated within 15 months.
 
 What would increase confidence: Running the A/B test in `phase00-tag-definition-injection.md` against actual session data to measure tag accuracy delta from Layer 1 alone, before building Layer 2.
+
+---
+
+## Research: Recall Benchmarks and LLM-as-Judge Rubrics for Memory Retrieval Systems
+
+**Date**: 2026-03-28
+**Triggered by**: Memory CI Loop PRD (MEMORY-CI-LOOP.PRD) — the SCORE phase requires a benchmark harness and a judge rubric before any quality measurement can begin
+**Stack relevance**: Directly affects `smart_extractor.py` recall quality measurement, `memory_bridge.py` Azure AI Search retrieval scoring, and the SCORE phase of the Memory CI Loop pipeline. Python + SQLite + Azure AI Search (hybrid BM25 + vector).
+
+---
+
+### Question
+
+How do production memory systems benchmark retrieval quality? What metrics, rubric dimensions, judge models, and test design patterns should we adopt for the ClawBot memory system recall benchmark?
+
+---
+
+### Sources Consulted
+
+1. [RAGAS — Available Metrics (official docs)](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/) — Authoritative RAGAS metric definitions: context precision, context recall, faithfulness, answer relevancy
+2. [RAGAS arXiv paper — 2309.15217](https://arxiv.org/abs/2309.15217) — Original RAGAS paper; reference-free evaluation methodology
+3. [Mem0 Benchmark Blog — AI Memory Comparison](https://mem0.ai/blog/benchmarked-openai-memory-vs-langmem-vs-memgpt-vs-mem0-for-long-term-memory-here-s-how-they-stacked-up) — LOCOMO benchmark results: Mem0 66.9% vs OpenAI 52.9% vs MemGPT on LLM-as-Judge score, F1, BLEU-1
+4. [Mem0 arXiv — 2504.19413](https://arxiv.org/pdf/2504.19413) — Production memory system architecture; evaluation methodology details
+5. [LongMemEval — arXiv 2410.10813](https://arxiv.org/abs/2410.10813) — ICLR 2025; 500-question benchmark; 5 memory dimensions: IE, MR, TR, KU, ABS
+6. [LongMemEval GitHub](https://github.com/xiaowu0162/LongMemEval) — Open-source benchmark with scalable chat histories
+7. [MemoryBench — arXiv 2510.17281](https://arxiv.org/abs/2510.17281) — Multi-domain continual learning memory benchmark; user feedback simulation
+8. [MemoryAgentBench — arXiv 2507.05257](https://arxiv.org/abs/2507.05257) — ICLR 2026; 4-axis memory evaluation: Accurate Retrieval, Test-Time Learning, Long-Range Understanding
+9. [MemBench — arXiv 2506.21605](https://arxiv.org/abs/2506.21605) — ACL 2025 Findings; comprehensive agent memory evaluation
+10. [Zep arXiv paper — 2501.13956](https://arxiv.org/abs/2501.13956) — Jan 2025; temporal KG architecture; Deep Memory Retrieval benchmark 94.8%; LongMemEval +18.5% accuracy
+11. [Zep blog — State of the Art Agent Memory](https://blog.getzep.com/state-of-the-art-agent-memory/) — Reranking strategies: RRF, MMR, episode-mentions reranker, graph-distance reranker, cross-encoders
+12. [G-Eval — Confident AI blog](https://www.confident-ai.com/blog/g-eval-the-definitive-guide) — Chain-of-thought rubric evaluation; weighted token probability scoring; CoT improved Spearman ρ from 0.51 → 0.66
+13. [LLM-as-Judge best practices — Evidently AI](https://www.evidentlyai.com/llm-guide/llm-as-a-judge) — Comprehensive survey; pairwise vs pointwise tradeoffs; bias mitigation
+14. [LLM-as-Judge best practices — Monte Carlo Data](https://www.montecarlodata.com/blog-llm-as-judge/) — 7 best practices including criteria decomposition and CoT
+15. [Pairwise vs Pointwise — arXiv 2504.14716](https://arxiv.org/abs/2504.14716) — Empirical study; pairwise flips 35% vs absolute 9%; absolute more robust to manipulation
+16. [Position Bias study — ACL IJCNLP 2025](https://aclanthology.org/2025.ijcnlp-long.18.pdf) — Systematic study; all judge models affected; swapping order shifts accuracy >10%
+17. [BenchmarkQED — Microsoft Research](https://www.microsoft.com/en-us/research/blog/benchmarkqed-automated-benchmarking-of-rag-systems/) — Automated benchmark harness; AutoQ query generation; bootstrap significance testing at 95% CI
+18. [Qdrant RAG Evaluation Guide](https://qdrant.tech/blog/rag-evaluation-guide/) — Golden dataset construction; hard negatives; offline evaluation patterns
+19. [Qdrant + Relari AI blog](https://qdrant.tech/blog/qdrant-relari/) — Data-driven offline evaluation without production index
+20. [RAG Evaluation Complete Guide — Maxim AI 2025](https://www.getmaxim.ai/articles/complete-guide-to-rag-evaluation-metrics-methods-and-best-practices-for-2025/) — Test set design; statistical significance at 200 queries (50 per class); bootstrap win-rate methodology
+21. [Governed Memory Architecture — arXiv 2603.17787](https://arxiv.org/html/2603.17787) — Production multi-agent memory; domain-specific rubric presets (default, sales, support, research); trace-grounded evaluation
+22. [Memory in LLMs Survey — arXiv 2509.18868](https://arxiv.org/html/2509.18868) — Layered evaluation: parametric, contextual, external, procedural/episodic memory dimensions
+23. [Judge model comparison — Statsig](https://www.statsig.com/perspectives/modelselection-gpt4-vs-claude-vs-gemini) — Gemini 2.5 top hit rate (97.4%); Claude 4 Sonnet strong on coding tasks
+24. [Galtea — LLMs as Judges study](https://galtea.ai/blog/exploring-state-of-the-art-llms-as-judges) — Cross-model evaluation comparison; GPT-4o + Claude 3.5 Sonnet exceed baseline
+25. [Anthropic cookbook — RAG evaluation (DeepWiki)](https://deepwiki.com/anthropics/anthropic-cookbook/5-retrieval-augmented-generation) — Anthropic-specific retrieval patterns and evaluation guidance
+
+---
+
+### Findings
+
+#### 1. Recall Benchmark Design — Metrics Beyond Precision@k and MRR
+
+Production memory systems use a multi-metric evaluation stack. The key metrics beyond Precision@k and MRR are:
+
+**RAGAS-family retrieval metrics:**
+- **Context Precision@K**: Mean of Precision@k for each position, weighted by relevance. Measures whether relevant chunks rank higher than irrelevant ones. Formula: `mean(relevant_chunks_at_rank_k / total_chunks_at_rank_k)` across K positions.
+- **Context Recall**: Measures whether the retrieved set covers all ground-truth reference claims. Formula: `claims_in_reference_supported_by_retrieved / total_claims_in_reference`.
+- **Faithfulness**: Whether the final answer is grounded in retrieved context (no hallucination). Uses LLM decompose-then-check approach.
+- **Answer Relevancy**: Semantic similarity between generated answer and original query.
+
+**Memory-system-specific metrics (production benchmarks):**
+- **F1 Score** (LOCOMO benchmark): Overlap between predicted and reference answer tokens. Mem0 uses this as primary metric alongside LLM-as-Judge.
+- **BLEU-1**: Unigram overlap for factual recall accuracy.
+- **LLM-as-Judge Score** (J): LLM evaluates answer quality against multi-turn conversation ground truth. Mem0 scores 66.9% vs OpenAI memory 52.9% on this.
+- **Deep Memory Retrieval (DMR)**: Zep-originated benchmark. Single-hop fact retrieval from long conversation histories. Zep: 94.8%.
+
+**LongMemEval benchmark dimensions** (ICLR 2025 — best-in-class for memory eval):
+| Dimension | What it tests |
+|-----------|--------------|
+| Information Extraction (IE) | Single-hop fact recall from distant history |
+| Multi-Session Reasoning (MR) | Synthesis across multiple conversation sessions |
+| Temporal Reasoning (TR) | Time-stamped fact resolution, "last known" updates |
+| Knowledge Updates (KU) | Tracking when the user changes a fact (old → new) |
+| Abstention (ABS) | Correctly returning "I don't know" for unknown facts |
+
+**For the ClawBot memory system specifically**, the most relevant dimensions are IE (can it recall a specific fact?), KU (does recency win when a fact is updated?), and TR (does a newer memory about the same entity surface over an older one?). MR and ABS are lower priority for the current architecture but worth including at low weight.
+
+**Latency as a quality dimension:**
+Mem0 tracks p50 and p95 retrieval latency as first-class metrics alongside accuracy. The current hook budget is 4 seconds. Tracking `time_to_first_result_ms` per query in the benchmark harness is recommended — a recall that takes 3.8s is operationally different from one that takes 0.2s even if accuracy is identical.
+
+---
+
+#### 2. LLM-as-Judge for Retrieval — Best Practices and Bias Mitigation
+
+**The core framework: G-Eval (EMNLP 2023, widely adopted)**
+
+G-Eval is the standard approach for building custom LLM judges. It works in two phases:
+1. Give the LLM a task description and evaluation criteria → it generates chain-of-thought evaluation steps automatically.
+2. Feed those steps plus the actual input into a scoring call → get a 1–5 score.
+
+The key finding: requiring CoT reasoning before the score improves Spearman correlation with human judgments from 0.51 → 0.66. This is the single highest-ROI change when building a judge.
+
+**Scoring mechanism:** Rather than taking the raw "5" label, G-Eval uses the **token log-probabilities** for scores 1–5 and computes a weighted average. This gives a continuous score (e.g., 3.72) rather than a coarse integer, which improves statistical sensitivity when comparing A vs B systems.
+
+**Seven best practices (synthesized from Evidently AI, Monte Carlo, Confident AI):**
+
+1. **One criterion per judge call.** A judge scoring "relevance + specificity + freshness" simultaneously performs worse than three separate calls. Each call should evaluate a single, clearly defined criterion.
+2. **Chain-of-thought before scoring.** The judge must emit reasoning before emitting the score — not after. "Rate 1-5, then explain" produces worse calibration than "explain your reasoning, then rate 1-5."
+3. **Behavioral anchors on every scale point.** Define what score "1", "3", and "5" mean concretely for each criterion. Anchor-free rubrics drift significantly.
+4. **Include the full context.** For retrieval evaluation, pass: the original query, the retrieved memory text(s), and any additional context (tags, age, source session). The judge cannot assess freshness or specificity without knowing the retrieval date.
+5. **Provide few-shot examples.** At least 2–3 labeled examples per score level anchor the judge's calibration. Especially critical for dimensions like "actionability" where the definition is subjective.
+6. **Run at temperature=0 or near-0.** Evaluation judges should be deterministic. Variability in the judge score introduces noise that masks real retrieval differences.
+7. **Log all judge outputs with reasoning.** The `reasoning` field is the audit trail — it surfaces systematic failures (e.g., judge always scores freshness 5 for recent memories regardless of content).
+
+**Biases to guard against:**
+
+| Bias | Severity | Mitigation |
+|------|----------|------------|
+| Position bias | High (>10% accuracy shift from reordering) | When judging a ranked list, run judge twice with order swapped; average the scores |
+| Verbosity bias | Medium | Judge prompt must state: "length is not a quality signal; penalize verbose answers that add no information" |
+| Self-preference bias | Medium for same-model judge | Use a different model family as judge than the model that produced the memories |
+| Anchoring bias | Medium | Present query first, then memory; never present the "correct" answer before asking for a relevance score |
+
+**Key finding on memory systems specifically:** Retrieval judges for memory differ from RAG judges because the ground truth is not a document but a user's conversational history. The judge needs to understand **what the user would benefit from knowing** — not just whether two strings match semantically.
+
+---
+
+#### 3. Pairwise Comparison vs Absolute Scoring
+
+**Recommendation: Use absolute scoring for the ClawBot benchmark, pairwise as a secondary check.**
+
+The empirical evidence (arXiv 2504.14716):
+- **Pairwise**: Preferences flip in ~35% of cases when conditions are re-run. More reliable for relative comparisons (A vs B) but vulnerable to distractor features the LLM judge happens to favor.
+- **Absolute pointwise**: Score flips in only ~9% of cases. More robust to manipulation (models can't exploit spurious attributes as easily). Better for production monitoring where you evaluate every retrieval individually.
+
+**When each is appropriate:**
+
+| Scenario | Method |
+|----------|--------|
+| Comparing two retrieval strategies (BM25 vs hybrid) | Pairwise: judge picks winner per query, aggregate win rate |
+| Measuring system quality over time (CI loop) | Absolute: scores per dimension per query; track drift |
+| Evaluating after a scoring change (boost/decay tuning) | Pairwise: before-after comparison on same query set |
+| Production monitoring of each recall event | Absolute: feasible to run per-request; pairwise requires pairs |
+
+**Pairwise at scale:** The `n^2` scaling problem is real. With 100 test queries and 2 systems, pairwise requires 200 comparisons (100 per direction). With 5 system variants, it requires 1,000 comparisons. Mitigation: use pairwise only for the top-2 candidates after absolute scoring narrows the field.
+
+---
+
+#### 4. Test Query Design — Diversity, Edge Cases, and Statistical Significance
+
+**How many queries are needed?**
+
+The BenchmarkQED/AutoQ methodology (Microsoft Research, 2025): 50 queries per category × 4 categories = 200 total queries. With bootstrap significance testing at 95% CI, this is sufficient for a production benchmark with 6 trials per query. LongMemEval uses 500 questions for a publishable academic benchmark.
+
+**Practical guidance for the ClawBot benchmark:**
+
+For a 2-hour construction effort with human review, target **80–120 queries** across category groups (see rubric section below). This is the minimum for statistical significance with bootstrap testing. Below 50 queries, individual query variance dominates.
+
+**Query type taxonomy (adapted from LongMemEval + MemoryAgentBench):**
+
+| Category | Examples | % of test set |
+|----------|----------|---------------|
+| Verbatim fact recall | "What framework does ClawBot use?" | 20% |
+| Temporal ordering | "What was the model before the current one?" | 20% |
+| Knowledge update | "What is the current port for the gateway?" (answer changed) | 15% |
+| Multi-hop synthesis | "What services depend on the VM being on?" | 15% |
+| Negatives / abstention | "What is ClawBot's Slack channel?" (never mentioned) | 15% |
+| Hard negatives | Similar-sounding but different facts | 15% |
+
+**Hard negatives are critical.** Without them, a retrieval system that returns everything scores 100% on recall but has useless precision. Hard negatives are queries where a plausible-sounding but wrong memory exists (e.g., query about "port 18792" where a memory about "port 18789" also exists).
+
+**Adversarial / edge case queries to include:**
+- Short queries (1–2 words): "tailscale IP"
+- Over-specified queries: full exact sentence from a memory
+- Ambiguous queries: "the main config file" (multiple files in memory)
+- Stale queries: facts that have been superseded (tests KU dimension)
+- Cross-domain queries: query spans two unrelated memory clusters
+
+**Query construction workflow:**
+1. Mine actual ClawBot session queries from `~/.openclaw/agents/main/sessions/` — these are real queries, high ecological validity.
+2. Augment with synthetic queries generated by GPT-4.1 or Claude Sonnet against each memory in the DB.
+3. Human review to remove trivially easy queries and add the missing edge-case categories.
+4. For each query, manually label 1–3 ground-truth memory IDs that should be returned.
+
+---
+
+#### 5. Local Testing Patterns — Offline Without Production Search Index
+
+**Three approaches for offline testing:**
+
+**Approach A: Snapshot replay (recommended for ClawBot)**
+- Export the current SQLite DB: `cp ~/.claude-memory/memory.db /tmp/benchmark-snapshot-YYYYMMDD.db`
+- Run benchmark queries against the snapshot using `smart_extractor.py recall` with `--db /tmp/benchmark-snapshot-YYYYMMDD.db` (requires adding a `--db` flag if not present)
+- All Azure AI Search calls are real but against the indexed state at snapshot time
+- Advantage: tests the actual search stack; no mocking needed
+- Risk: search index state and DB state can diverge; run `memory_bridge.py sync` before taking the snapshot
+
+**Approach B: Local mock with pre-computed embeddings**
+- Pre-compute embeddings for all memories and store them in the snapshot
+- Run cosine similarity locally (numpy/sklearn) against pre-computed vectors
+- No network calls; fully deterministic; fast (~5ms per query)
+- Best for unit testing the scoring logic in isolation, not for testing the full retrieval pipeline
+- Library: `sentence-transformers` or Azure OpenAI embeddings cached to disk
+
+**Approach C: Ragas offline evaluation**
+The RAGAS framework can run entirely offline against a local dataset:
+```python
+from ragas import evaluate
+from ragas.metrics import context_precision, context_recall
+from datasets import Dataset
+
+# Build dataset from your ground-truth file
+data = {
+    "question": [...],           # test queries
+    "contexts": [[...]],         # retrieved memory texts
+    "ground_truth": [...]        # expected answer or reference text
+}
+result = evaluate(Dataset.from_dict(data), metrics=[context_precision, context_recall])
+```
+RAGAS calls an LLM internally for LLM-based metrics — configure it to use Azure OpenAI to stay on-stack.
+
+**Recommended pattern for the Memory CI Loop:**
+- Approach A (snapshot) for full end-to-end benchmark runs (weekly or per-cycle)
+- Approach B (local mock) for fast iteration on scoring algorithm changes (runs in seconds)
+- Store benchmark results as `quality/data/benchmark-results-YYYYMMDD.json` per the CI Loop artifact convention
+
+---
+
+#### 6. Scoring Rubric Dimensions for Memory Retrieval
+
+**Core rubric (6 dimensions, 1–5 scale each):**
+
+| Dimension | Definition | Weight |
+|-----------|-----------|--------|
+| **Topical Relevance** | Does the memory address the query's subject matter? | 30% |
+| **Specificity** | Is the memory precise (exact value, name, path) or vague? | 20% |
+| **Temporal Freshness** | Is this the most current version of this fact? | 20% |
+| **Actionability** | Can the user act on this memory to solve their problem? | 15% |
+| **Completeness** | Does the retrieved set cover all sub-aspects of the query? | 10% |
+| **Noise Penalty** | Are irrelevant memories absent from the returned set? | 5% |
+
+**Behavioral anchors — Topical Relevance (example):**
+- **5**: Memory directly answers the query or provides the exact fact being asked for.
+- **4**: Memory is on the same topic and substantially reduces the answer search space.
+- **3**: Memory is related to the topic but requires inference to connect to the query.
+- **2**: Memory is in the same domain (e.g., "VM") but does not address the query's specific aspect.
+- **1**: Memory is topically unrelated or contradicts the query's assumptions.
+
+**Freshness scoring note:** Freshness cannot be scored on a simple recency-of-creation basis. A memory about a permanent configuration fact (e.g., Tailscale IP) does not lose freshness with age, while a memory about "current model being used" (a volatile fact) becomes stale in days. The judge prompt must include the memory's `created` timestamp, `updated` timestamp, and `access_count` — and the rubric anchor for "5" should be "this is the most current version of this fact in the context of what would be true today."
+
+**Actionability scoring note:** This is the hardest dimension to calibrate. Behavioral anchor for "5": "The user can take a concrete next step using only this memory without additional lookup." For "3": "The memory is useful background but requires combining with other information."
+
+**Optional dimension: Precision-of-Source (for trust calibration):**
+Does the memory cite enough context to verify its origin? (e.g., "from session 2026-02-20" is better than no source). This is useful for catching GPT-hallucinated memories that slipped through extraction.
+
+**Judge prompt template (sketch):**
+
+```
+You are evaluating a memory retrieval system. Given a user query and a retrieved memory, score the memory on the following dimension:
+
+DIMENSION: {dimension_name}
+DEFINITION: {definition}
+
+Scale:
+5 — {anchor_5}
+3 — {anchor_3}
+1 — {anchor_1}
+
+Query: {query}
+Memory text: {memory_text}
+Memory created: {created}
+Memory tags: {tags}
+
+Think through your evaluation carefully, then output:
+REASONING: [your explanation]
+SCORE: [1-5]
+```
+
+**Per the G-Eval finding**: always put REASONING before SCORE in the output format. The judge produces better scores when forced to commit to a reasoning trace before emitting the number.
+
+---
+
+### Recommendation
+
+**Phase 1 (immediate — 1 week):** Build a golden query set of 80 queries across the 6 category types above. Mine 40 from real session logs, generate 40 synthetically against the current memory DB, manually label ground-truth memory IDs. Store in `quality/data/benchmark/golden-queries.json`.
+
+**Phase 2 (1–2 weeks):** Build a RAGAS-based offline evaluation harness using Approach A (snapshot replay) + Approach B (local mock cosine for fast runs). Use RAGAS context_precision and context_recall as the primary retrieval metrics. Add a custom LLM judge for Specificity and Freshness (the two dimensions RAGAS does not measure natively).
+
+**Phase 3 (2–3 weeks):** Integrate the benchmark into the Memory CI Loop SCORE phase. Target metrics: Context Precision ≥ 0.70, Context Recall ≥ 0.75, LLM-Judge composite ≥ 3.5/5. Run on every optimization cycle.
+
+**For the judge model:** Use Claude claude-sonnet-4-6 (already available via the gateway) or GPT-5.2 (already on-stack for extraction). Do not use the same model for extraction AND judging — this introduces self-preference bias. If extraction uses GPT-5.2, judge with Claude Sonnet. If extraction switches to Claude, judge with GPT-5.2.
+
+**For pairwise A/B testing** (when evaluating a new scoring tuning): run pairwise comparison on the same 80-query golden set; report win rates with bootstrap significance at 95% CI. Require at least 60% win rate to declare a variant superior (guard against noise with the small set).
+
+---
+
+### Compatibility Notes
+
+- RAGAS library requires Python 3.10+; the ClawBot venv (`~/.openclaw/workspace/skills/clawbot-memory/.venv/`) is Python 3.10 — compatible.
+- RAGAS `evaluate()` uses an LLM internally. Configure to use the same Azure OpenAI endpoint already in `/etc/environment` (`AZURE_OPENAI_CHAT_ENDPOINT`). Set `ragas.llm` to an `AzureChatOpenAI` instance to avoid OpenAI API key requirement.
+- The RAGAS framework calls the judge LLM once per metric per query — for 80 queries × 2 metrics × ~500 tokens per call = ~80K tokens per full benchmark run. At GPT-5.2 pricing, this is roughly $0.10–0.20 per run. Acceptable for weekly cadence.
+- Token log-probabilities (required for the G-Eval weighted scoring approach) are available from Azure OpenAI with `logprobs=True` in the API call. Confirm this is supported on the `2024-08-01-preview` or later API version already in use.
+- Azure AI Search hybrid mode (BM25 + vector) is the retrieval backend. The benchmark harness should test both modes separately and combined to isolate which component is limiting recall.
+
+---
+
+### Design Decision Flags
+
+1. **Rubric weight calibration** — The 30/20/20/15/10/5 weights above are starting estimates. After the first benchmark run, measure which dimensions show the most variance across queries — high-variance dimensions carry more diagnostic signal and should receive higher weight in the composite score. Flag for: `plans/design-decisions/` — "What weights should the memory retrieval rubric dimensions use?"
+
+2. **Judge model pairing** — Currently GPT-5.2 is used for extraction. The recommendation is to use Claude Sonnet as the judge to avoid self-preference bias. This requires the benchmark harness to call the openclaw gateway (Claude model via GitHub Copilot) rather than Azure OpenAI directly. Flag for: `plans/design-decisions/` — "Which model serves as the retrieval quality judge, and how is it called from the benchmark harness?"
+
+3. **Snapshot vs live index** — Approach A (snapshot) gives reproducible benchmarks but can drift from the live index. Consider adding a weekly automated benchmark that runs against the live index and a separate regression suite that runs against a pinned snapshot. Flag for: `plans/design-decisions/` — "Should the benchmark harness use a pinned DB snapshot or the live Azure AI Search index?"
+
+---
+
+### Confidence: High
+
+Primary sources: 6 peer-reviewed/ICLR papers from 2025 (LongMemEval, MemoryBench, MemoryAgentBench, Zep, G-Eval lineage, arXiv pairwise/pointwise), official RAGAS docs (stable release), Mem0 production benchmark (public), Microsoft Research BenchmarkQED (2025), Qdrant evaluation guide (2025), and 5 practitioner guides from Evidently AI, Monte Carlo, Confident AI, and Statsig — all dated within 12 months.
+
+What would increase confidence: Running the actual benchmark harness against the ClawBot memory DB and calibrating rubric anchors against human-labeled examples from real ClawBot sessions. The theoretical framework is well-established; the open question is whether the behavioral anchors generalize to the specific content types in the ClawBot memory store (VM ops, OAuth flows, model configs).
+
+
+---
+
+## Research: Memory Retrieval Best Practices for AI Agent Systems (2025-2026)
+
+**Date**: 2026-03-28
+**Triggered by**: Planning round for Memory CI Loop Phase 2 improvements — specifically to inform the recall optimizer plan (plans/memory-recall-optimizer1.md) and identify where the current ClawBot memory system lags production best practices
+**Stack relevance**: Azure AI Search (oclaw-search, basic tier), SQLite (memory.db), smart_extractor.py recall pipeline, memory_bridge.py hybrid search, static topic expansion map, freshness + importance scoring profile
+
+---
+
+### Question
+
+What are the 2025-2026 best practices for the following 10 areas in an AI agent memory system with ~100 memories, hybrid Azure AI Search, hook-based recall injection, and a 4-second budget per turn?
+
+1. Query reformulation (HyDE, decomposition, entity extraction)
+2. Reranking strategies (cross-encoder vs LLM vs semantic)
+3. Contextual retrieval (Anthropic's approach applied to memory facts)
+4. Adaptive retrieval (relevance gating — when to skip recall)
+5. Memory consolidation (atomic facts vs summaries)
+6. Reciprocal Rank Fusion for multi-query combination
+7. Late interaction models (ColBERT/ColPali) viability
+8. Few-shot retrieval — example-guided query expansion
+9. Embedding model selection for small stores
+10. Conversation-context-weighted retrieval (Mem0, Zep, MemGPT approaches)
+
+---
+
+### Sources Consulted
+
+1. [Anthropic — Contextual Retrieval](https://www.anthropic.com/news/contextual-retrieval) — Technique for prepending per-chunk context before embedding; reduces failed retrievals 49%; prompt caching makes it cheap
+2. [Arxiv — Adaptive Memory Admission Control for LLM Agents (2603.04549, Mar 2026)](https://arxiv.org/abs/2603.04549) — A-MAC framework for relevance gating; 5-factor scoring for memory admission
+3. [Arxiv — Zep: Temporal Knowledge Graph (2501.13956, Jan 2025)](https://arxiv.org/abs/2501.13956) — Bitemporal KG architecture; 18.5% accuracy gain, 90% latency reduction vs baseline
+4. [Arxiv — Mem0: Production-Ready Scalable Memory (2504.19413)](https://arxiv.org/pdf/2504.19413) — Hybrid vector + graph; 26% F1 uplift on LOCOMO vs OpenAI memory
+5. [Arxiv — Choosing How to Remember: Adaptive Memory Structures (2602.14038, Feb 2026)](https://arxiv.org/html/2602.14038) — MoE gate functions for adaptive retrieval weight assignment
+6. [Arxiv — RAG-Fusion (2402.03367)](https://arxiv.org/abs/2402.03367) — Multi-query generation + RRF; +8-10% answer accuracy, +30-40% comprehensiveness
+7. [Voyage AI — The Case Against LLMs as Rerankers (Oct 2025)](https://blog.voyageai.com/2025/10/22/the-case-against-llms-as-rerankers/) — Purpose-built cross-encoders: 60x cheaper, 48x faster, up to 15% better NDCG@10 than LLMs
+8. [ZeroEntropy — Ultimate Guide to Reranking 2026](https://www.zeroentropy.dev/articles/ultimate-guide-to-choosing-the-best-reranking-model-in-2025) — Cross-encoder delivers 95% of LLM reranking accuracy at 3x speed
+9. [ZeroEntropy — LLM as Reranker Deep Dive](https://www.zeroentropy.dev/articles/should-you-use-llms-for-reranking-a-deep-dive-into-pointwise-listwise-and-cross-encoders) — Latency data: LLM reranking adds 4-6s vs cross-encoder's ms range
+10. [Microsoft Learn — Azure AI Search Hybrid Search Scoring (RRF)](https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking) — Azure's built-in RRF implementation for hybrid; scoring profiles applied pre- and post-semantic rerank
+11. [Microsoft Learn — Use Scoring Profiles with Semantic Ranking](https://learn.microsoft.com/en-us/azure/search/semantic-how-to-enable-scoring-profiles) — Scoring profiles applied twice in hybrid + semantic pipeline; functions (freshness/magnitude) survive semantic rerank; text_weights do not
+12. [Microsoft Learn — Add Scoring Profiles](https://learn.microsoft.com/en-us/azure/search/index-add-scoring-profiles) — Freshness function supports linear/constant/quadratic interpolation; quadratic favors very recent docs strongly
+13. [Jina AI — ColBERT v2 Multilingual](https://jina.ai/news/jina-colbert-v2-multilingual-late-interaction-retriever-for-embedding-and-reranking/) — 128-dim token embeddings; available on Azure marketplace; 1.5% perf drop from 128→64 dims
+14. [Weaviate — Late Interaction Overview (ColBERT, ColPali)](https://weaviate.io/blog/late-interaction-overview) — Token-level storage requirement makes ColBERT impractical for tiny stores
+15. [Voyage AI — voyage-3-large launch (Jan 2025)](https://blog.voyageai.com/2025/01/07/voyage-3-large/) — +9.74% over text-embedding-3-large on RTEB; Matryoshka + int8 quantization supported
+16. [Reintech — Embedding Models 2026 Comparison](https://reintech.io/blog/embedding-models-comparison-2026-openai-cohere-voyage-bge) — Cohere embed-v4 leads MTEB at 65.2; OpenAI text-embedding-3-large at 64.6; Voyage-3-large dominates retrieval-specific benchmarks
+17. [Mem0 Docs — Graph Memory](https://docs.mem0.ai/open-source/features/graph-memory) — Entity extractor + relations generator → directed labeled graph; entity-centric retrieval with subgraph expansion
+18. [Promptagator — Few-shot Dense Retrieval from 8 Examples (arxiv 2209.11755)](https://arxiv.org/abs/2209.11755) — 8 task-specific examples allow dual encoders to outperform heavily-engineered MS MARCO models
+19. [Personalize Before Retrieve — LLM-based Personalized Query Expansion (arxiv 2510.08935)](https://arxiv.org/html/2510.08935v1) — User history + explicit persona context improves query expansion for personal retrieval
+20. [Haystack — Contextual Retrieval Implementation](https://www.anthropic.com/news/contextual-retrieval) — Contextual BM25 + contextual embeddings combined reduces failures 67%
+21. [Microsoft Tech Community — Azure AI Search Hybrid + Semantic Ranking](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/azure-ai-search-outperforming-vector-search-with-hybrid-retrieval-and-reranking/3929167) — Benchmarks show hybrid + semantic ranking outperforms pure vector search significantly
+22. [Mem0 — AI Memory Research LOCOMO Benchmark](https://mem0.ai/research) — 26% relative uplift in LLM-as-judge score vs OpenAI memory (66.9% vs 52.9%)
+23. [Zep Blog — Temporal Knowledge Graph Architecture](https://blog.getzep.com/zep-a-temporal-knowledge-graph-architecture-for-agent-memory/) — Graphiti engine; episodic/semantic/community subgraph hierarchy
+24. [Knowledge-Aware Query Expansion with LLMs — ACL 2025](https://aclanthology.org/2025.naacl-long.216.pdf) — Entity-anchored query expansion with knowledge graph context outperforms plain LLM expansion
+
+---
+
+### Findings
+
+#### 1. Query Reformulation — HyDE, Decomposition, Entity Extraction
+
+**HyDE (Hypothetical Document Embeddings):**
+HyDE generates a synthetic answer to the query, embeds that answer, and uses the embedding for retrieval rather than the raw query. This bridges the query-document embedding space gap (short question vs longer fact). However:
+- HyDE adds 25-60% latency on small LLMs
+- For small stores (~100 facts), the benefit is reduced because keyword overlap is high anyway
+- Risk: if the generated hypothesis is wrong, retrieval degrades
+- **Verdict for this use case:** Marginal benefit given 100-memory store + 4s budget. Low priority. Use the static/LLM hybrid expansion already planned.
+
+**Query Decomposition:**
+Enterprise search pipelines decompose multi-intent queries into 3-7 sub-queries. For memory recall, this matters when the user message contains two unrelated topics (e.g., "what model does the gateway use and what's the Tailscale IP?"). The current static domain map handles this partially. The planned LLM fallback expansion is the right direction.
+
+**Entity Extraction Before Search:**
+The A-Mem paper (Feb 2026) and Mem0 architecture both extract named entities from the input before search. Entity tokens (e.g., "Tailscale", "Claude Opus", "oclaw") are then used as keyword anchors for BM25. This is particularly effective for small stores where entity hit rate is high. Recommendation: extract key nouns/proper nouns from user message as an additional BM25 filter. Cost: one small LLM call or a regex pass.
+
+**Best practice for small stores (< 1K facts):** Static map + LLM fallback + entity extraction is the right stack. Full HyDE is overkill; entity anchoring is cheap and high-value.
+
+---
+
+#### 2. Reranking Strategies
+
+**The core finding is clear and consistent across sources:**
+- LLM reranking adds 4-6 seconds of latency — exceeds the 4s budget entirely
+- Cross-encoder reranking runs in 5-10ms on top-20 candidates
+- Purpose-built cross-encoders are 60x cheaper, 48x faster, and up to 15% better on NDCG@10 than LLMs for reranking tasks (Voyage AI analysis, Oct 2025)
+- ZeroEntropy benchmarks: cross-encoder delivers 95% of LLM reranking accuracy at 3x the speed
+
+**Azure AI Search Semantic Ranking** (the L2 reranker built into Azure) uses Microsoft's language understanding models. It is a form of semantic cross-encoder. According to MS docs and benchmarks, it measurably improves over pure BM25+vector RRF on text queries. Critically, semantic ranking is applied to the top-50 results from L1 (RRF), not to all documents.
+
+**Important Azure-specific behavior for scoring profiles + semantic ranking:**
+- Scoring profile functions (freshness, magnitude boosts) are applied **twice**: once at L1 before semantic ranking, and once after semantic ranking
+- Text_weights (field-level boosts like `"content": 1.5, "tags": 1.2`) are **NOT applied** after semantic reranking — only scoring functions survive
+- This means the tags field weight in the current plan will be erased after semantic rerank. Must use magnitude/freshness functions, not text_weights, for durable boosting.
+
+**Recommendation:** Keep Azure semantic ranking enabled. Do not add cross-encoder on top — that's double-reranking and adds latency. The Azure semantic ranker IS the cross-encoder for this stack. Ensure scoring profile uses functions (not text_weights) for importance and freshness.
+
+---
+
+#### 3. Contextual Retrieval (Anthropic's Approach Applied to Memory Facts)
+
+Anthropic's contextual retrieval prepends a context snippet to each chunk before embedding. For documents, this looks like: "This chunk describes the X section of Y document. The main topic is Z. [original chunk text]."
+
+**For memory facts, this translates to:** prepending metadata context before embedding the fact. Instead of embedding just "The gateway uses claude-opus-4.6", embed: "Memory from project openclaw_vm, domain: infrastructure, type: architecture, stored 2026-02-20. The gateway uses claude-opus-4.6 as its primary model."
+
+The result:
+- Contextual embeddings reduce failed retrievals by 49% in Anthropic's tests
+- Combined with contextual BM25, failure rate drops 67%
+- Cost: one Claude API call per fact at indexing time (not retrieval time); prompt caching makes this cheap for batch updates
+
+**Key insight:** This is a one-time re-indexing improvement, not a per-query cost. The current memory facts are stored as bare text in Azure. Re-indexing with contextual embeddings would require: (1) generate a 1-2 sentence context prefix per memory using the tags/project/date metadata already available, (2) concatenate to the content before calling the embedding model, (3) re-sync to Azure AI Search.
+
+**Verdict:** High value, modest implementation cost. Applicable to memory facts. Flag as design decision.
+
+---
+
+#### 4. Adaptive Retrieval — When to Skip Recall
+
+**A-MAC (Adaptive Memory Admission Control, Mar 2026)** addresses the retrieval side too. The paper introduces a relevance gate as a structured decision problem decomposed into 5 factors: future utility, factual confidence, semantic novelty, temporal recency, and content type prior.
+
+More practically, the Adaptive Memory Structures paper (Feb 2026) identifies:
+- Simple conversational turns (greetings, acknowledgments, short social exchanges) rarely benefit from recall
+- Recall is most useful when: entity names are present, questions reference past state, planning queries require context
+
+**Production heuristics used in the wild:**
+- Skip recall if message token count < 10 tokens
+- Skip recall if message contains no nouns or named entities
+- Skip recall if message starts with pure social phrases ("thanks", "ok", "sounds good", etc.)
+- Lightweight classifier: measure cosine similarity between the query embedding and a centroid of all memories; if similarity < threshold (e.g., 0.15), skip recall
+
+**Verdict:** The current system fires recall on every turn. Adding a lightweight relevance gate (token count + entity check + cosine threshold) can reduce unnecessary recall calls by 20-35% based on the A-MAC paper results, while reducing latency on trivial turns. Implement as a pre-filter in the hook handler before calling smart_extractor.py.
+
+---
+
+#### 5. Memory Consolidation — Atomic Facts vs Summaries
+
+**The research community has largely converged on a hybrid approach:**
+- Mem0 stores atomic statements (one fact per memory entry) — better for retrieval precision
+- Zep stores entities + relationships in a knowledge graph + episodic subgraph — better for temporal reasoning and multi-hop
+- MemGPT/Letta stores structured memory blocks in context and actively rewrites them — best for coherence, worse for recall diversity
+
+**Why atomic facts win for retrieval:**
+- A single query matches one atomic fact more precisely than a summary that bundles N facts
+- Summaries blur semantic signal — the embedding of "The system uses Tailscale, which is version 1.94.2 and connects via exit node chromeos-nissa" is less focused than three separate facts
+- Retrieval systems (especially BM25) score exact keyword matches more reliably against atomic facts
+
+**Why summaries fail:**
+- Consolidation is lossy — the summary never fully captures the original facts
+- No ground-truth re-check: the system never verifies summaries against source after time passes
+- Summaries become stale silently (key risk per EverMind-AI EverMemOS research)
+
+**Exception — community nodes (Zep pattern):** High-level summaries of a domain (e.g., "User's overall infrastructure setup") stored as a "community node" can serve as a router to atomic facts. This two-tier approach (atomic facts + domain summaries) retrieves better than either alone.
+
+**Verdict:** Keep atomic fact storage (current approach is correct). Consider adding a single "summary node" per domain as a routing aid, but not as a replacement for atomic facts.
+
+---
+
+#### 6. Reciprocal Rank Fusion (RRF) for Multi-Query Combination
+
+Azure AI Search uses RRF natively for hybrid search (BM25 + vector). The formula is `score = sum(1 / (k + rank_i))` where k=60 by default.
+
+**RAG-Fusion pattern** (arxiv 2402.03367) extends this: generate N sub-queries → run N separate searches → RRF-fuse the result lists. This yields +8-10% answer accuracy and +30-40% comprehensiveness vs single-query RAG.
+
+**For the current system:** smart_extractor.py already runs 5 parallel queries per expanded topic. The results are currently deduped and priority-ranked. **RRF is strictly better** than priority-based dedup for combining lists from parallel queries because:
+- RRF rewards results that appear in multiple sub-query result lists (consensus signal)
+- Priority ranking ignores cross-query rank information
+- RRF is parameter-free and doesn't require tuning per-domain
+
+**Implementation:** Replace the current dedup+priority sort in `cmd_recall()` with RRF fusion:
+```python
+def rrf_fuse(result_lists: list[list[dict]], k: int = 60) -> list[dict]:
+    scores: dict[str, float] = {}
+    items: dict[str, dict] = {}
+    for result_list in result_lists:
+        for rank, item in enumerate(result_list, start=1):
+            mem_id = item["id"]
+            scores[mem_id] = scores.get(mem_id, 0) + 1.0 / (k + rank)
+            items[mem_id] = item
+    return sorted(items.values(), key=lambda x: -scores[x["id"]])
+```
+
+This is a ~15-line change to smart_extractor.py and likely the highest-ROI improvement available with zero additional API calls.
+
+---
+
+#### 7. Late Interaction Models (ColBERT/ColPali) — Viability for Small Stores
+
+ColBERT stores per-token embeddings (128 dims × N tokens per document) rather than a single document embedding. For a 100-word memory fact, this means ~25 token vectors × 128 dims = 3,200 floats vs 3,072 floats for a single text-embedding-3-large embedding.
+
+**For 100 memories:** Storage overhead is manageable (~320K floats vs ~307K). The problem is infrastructure:
+- ColBERT requires a compatible vector store (Qdrant supports it natively; Weaviate supports it)
+- **Azure AI Search does NOT natively support ColBERT late interaction** as of March 2026 — it uses single-vector fields
+- Jina ColBERT v2 is on Azure Marketplace as an embedding API, but the multi-vector scoring is handled at the client side, not server side
+- This would require replacing Azure AI Search with Qdrant or implementing client-side MaxSim scoring
+
+**Verdict:** Not viable for this stack. Azure AI Search doesn't support token-level multi-vector scoring. The accuracy gain (ColBERT typically +3-8% over bi-encoder on retrieval benchmarks) is not worth migrating the vector store for a 100-memory system. Skip.
+
+---
+
+#### 8. Few-Shot Retrieval — Example-Guided Query Expansion
+
+Promptagator (Google, NeurIPS 2022, still widely cited) showed that 8 task-specific examples in the query expansion prompt allow dual-encoder retrievers to outperform models trained on MS MARCO. The key mechanism: examples teach the LLM the vocabulary and specificity level expected.
+
+**Applied to smart_extractor.py's LLM fallback expansion:**
+The current planned prompt is: `"Generate 3-5 search synonyms/related terms for: '{topic}'. Return comma-separated list only."`
+
+Adding 2-3 few-shot examples from the actual ClawBot domain would improve expansion quality:
+```
+Examples:
+  "gateway restart" → "openclaw-gateway.service, restart_gateway.py, systemctl user, watchdog, gateway crash"
+  "google auth expired" → "invalid_grant, token refresh, oauth2, reauth, credential rotation"
+  "tailscale down" → "exit node, wireguard, tailscale status, residential IP, failover, egress"
+
+Now expand: "{topic}"
+```
+
+**Cost:** ~200-300 extra tokens per expansion call. Negligible at $0.001/call.
+**Benefit:** More domain-specific expansions that match actual memory content. Especially valuable because ClawBot's domain vocabulary (openclaw, desazure, gateway, IMDS) is not in general-purpose training data.
+
+**Verdict:** High value, low cost. Add 3-5 domain examples to the LLM expansion prompt. Flag for Round 2 of the recall optimizer.
+
+---
+
+#### 9. Embedding Model Selection for Small Stores (~100 memories)
+
+**2025-2026 benchmark summary (MTEB + RTEB):**
+
+| Model | MTEB Score | Retrieval (RTEB) | Dims | Notes |
+|-------|-----------|-----------------|------|-------|
+| Cohere embed-v4 | 65.2 | Strong | 1024 | Multimodal; 128K context window |
+| text-embedding-3-large | 64.6 | Baseline | 3072 | Current model; Matryoshka |
+| Voyage-3-large | N/A (MTEB) | +14% over OAI on RTEB | 1024 | Best retrieval; Matryoshka + int8 |
+| Voyage-3.5 | N/A | +9.74% over OAI-v3-large | 1024 | Latest as of Mar 2026 |
+| BGE-M3 | ~64 | Competitive | 1024 | Open source; multilingual |
+
+**Key finding for small stores:**
+For a ~100-memory store, the embedding model choice matters less than for million-document corpora because:
+- All top models perform within ~5% of each other on small, coherent corpora
+- With 100 facts, cosine similarity space is not crowded — even a weaker embedding separates facts well
+- The bigger gains come from query expansion, contextual embedding, and scoring profile tuning
+
+**Should you switch from text-embedding-3-large (3072 dims)?**
+- The 3072-dim vector is genuinely oversized for 100 memories (Azure AI Search stores ~307K floats of mostly redundant signal)
+- Switching to Voyage-3.5 (1024 dims) would: save ~67% vector storage, reduce search latency marginally, and gain +9.74% on retrieval benchmarks
+- However, switching requires: re-embedding all memories, updating the Azure index schema, testing the re-indexed store
+- **At 100 memories, this is low-risk** — re-embedding takes minutes and costs ~$0.001
+
+**Verdict:** text-embedding-3-large is adequate for now. If re-indexing for contextual retrieval (item 3 above), switch to Voyage-3.5 at the same time — combining two improvements into one migration.
+
+---
+
+#### 10. Memory Weighting by Conversation Context (Mem0, Zep, MemGPT)
+
+**Mem0 approach:**
+- Extracts entities and relationships from the full conversation (not just last message)
+- Weights retrieval by: entity overlap, semantic similarity to most recent N turns, and importance score
+- Graph layer tracks which entities co-occur across memories
+- On LOCOMO benchmark: 66.9% LLM-as-judge score vs 52.9% for OpenAI memory (26% relative gain)
+
+**Zep approach (Temporal Knowledge Graph):**
+- Stores every memory with both event time (T) and ingestion time (T') — bitemporal
+- When querying, the graph traversal scores edges by temporal recency and validity window
+- Supports "what was true at time T?" queries — critical for superseded fact handling
+- 18.5% accuracy improvement + 90% latency reduction vs naive RAG baseline
+- Key insight: invalidating old facts (not deleting) allows temporal reasoning without hallucination
+
+**MemGPT/Letta approach:**
+- Maintains structured memory blocks in the active context window
+- Agent rewrites blocks in real-time when new information contradicts stored state
+- Drawback: requires memory to fit in context window; doesn't scale beyond ~50-100 facts
+
+**Most relevant insight for this system:**
+The current system queries on the last user message only. Using the last 2-3 conversation turns as additional query context (concatenated or averaged) would significantly improve recall for multi-turn conversations. Zep's benchmark shows this is one of the highest-value changes.
+
+**Practical implementation:**
+```python
+# Current: query = user_message
+# Improved: query = last_3_turns_summary + user_message
+def build_recall_query(current_message: str, recent_turns: list[str]) -> str:
+    if recent_turns:
+        context = " ".join(recent_turns[-2:])  # Last 2 turns
+        return f"{context} {current_message}"
+    return current_message
+```
+
+This is already available in the hook handler context (the hook receives the full conversation object). Adding it is a ~10-line change.
+
+---
+
+### Recommendation
+
+**Ranked by ROI × effort:**
+
+| Priority | Improvement | Effort | Expected Gain | When |
+|----------|-------------|--------|---------------|------|
+| 1 | **RRF fusion** for multi-query combination (replace dedup+priority sort) | 30 min | +8-10% precision | Round 2 |
+| 2 | **Conversation context** in recall query (last 2 turns + current message) | 30 min | +5-10% MRR for multi-turn queries | Round 2 |
+| 3 | **Relevance gate** — skip recall on trivial turns (<10 tokens, no entities) | 45 min | -20-35% unnecessary calls, -latency | Round 2 |
+| 4 | **Few-shot domain examples** in LLM expansion prompt (3-5 ClawBot examples) | 30 min | Better expansion vocabulary | Round 2 |
+| 5 | **Scoring profile fix** — remove text_weights, keep functions only (freshness + importance) | 30 min | Boosts survive semantic rerank | Before deploy |
+| 6 | **Contextual re-indexing** — add metadata prefix to memory embeddings before Azure sync | 2h | -49% failed retrievals | Quarterly re-index |
+| 7 | **Entity extraction** as BM25 anchor (extract nouns before search) | 1h | Better BM25 precision | Round 3 |
+| 8 | Switch embedding to Voyage-3.5 during next re-index | 1h | +9.74% RTEB; combined with item 6 | Quarterly |
+| 9 | ColBERT late interaction | Not viable | Azure AI Search doesn't support it | Skip |
+| 10 | HyDE query expansion | Low priority | Marginal for 100-fact store | Defer |
+
+**Critical finding for the current scoring profile plan:**
+The text_weights (`"content": 1.5, "tags": 1.2`) in the planned scoring profile are erased after Azure semantic reranking. Only scoring **functions** (freshness, magnitude) survive. The plan in mem-optimize-v5.md Phase 3a must be updated to remove text_weights and rely entirely on magnitude/freshness functions for durable boosting.
+
+**Critical finding for the recall optimizer plan:**
+RRF fusion (item 1 above) should be implemented before the Round 2 topic expansion change, or alongside it. It requires no additional LLM calls and directly improves multi-query result combination.
+
+---
+
+### Compatibility Notes
+
+- **RRF fusion:** Pure Python, no new dependencies. Compatible with the existing smart_extractor.py structure. Works identically for local SQLite and Azure AI Search backends.
+- **Conversation context in query:** Hook handler already receives conversation context. No new infrastructure needed.
+- **Relevance gate:** Requires spaCy or regex for entity check (spaCy already available in the venv). Alternatively, a simple heuristic (token count + presence of uppercase tokens) works without spaCy.
+- **Contextual re-indexing:** Requires one Claude API call per memory (or GPT-4.1-mini for cost). 100 memories × ~200 tokens = ~20K tokens total. Cost: ~$0.003 with GPT-4.1-mini. One-time cost per major re-index.
+- **Voyage-3.5 embedding switch:** Requires updating `EMBEDDING_MODEL` in memory_bridge.py, changing the Azure AI Search index vector dimension from 3072 to 1024, and running `memory_bridge.py sync --full`. Index schema changes require deleting and recreating the Azure index (brief downtime). Test on staging index first (per mem-optimize-v5.md Phase 3a protocol).
+- **Semantic ranking in Azure:** Requires Standard tier or above. Current system is on Basic tier — semantic ranking may not be available. Verify: `az search service show --name oclaw-search --resource-group oclaw-rg --query "sku"`. If Basic, semantic ranking is not included; skip that layer and rely on RRF + scoring profile only.
+- **A-MAC relevance gate:** The full A-MAC paper (Mar 2026) framework is heavyweight. The practical heuristic version (token count + entity check) is sufficient for this use case and requires no additional models.
+
+---
+
+### Design Decision Flags
+
+1. **Contextual embedding re-indexing** — Should memory facts be re-indexed with Anthropic-style context prefixes? If yes, what prefix template to use? Flag for: `plans/design-decisions/` — "Contextual re-indexing: prefix template for memory facts and re-index schedule"
+
+2. **RRF vs priority-rank fusion** — Should the multi-query result fusion in cmd_recall() switch from dedup+priority to RRF? Given the consistent research evidence, this should be an unambiguous yes, but flag the k parameter choice (k=60 is Azure's default; k=10 may be better for 5-query fusion). Flag for: `plans/design-decisions/` — "RRF k parameter for 5-query memory recall fusion"
+
+3. **Embedding model migration** — Should the next full re-index use Voyage-3.5 (1024-dim) instead of text-embedding-3-large (3072-dim)? Combines well with contextual re-indexing as a single migration. Flag for: `plans/design-decisions/` — "Embedding model: stay on text-embedding-3-large or migrate to Voyage-3.5 at next re-index?"
+
+4. **Azure tier check for semantic ranking** — The current Basic tier may not include semantic ranking. If it doesn't, the scoring profile text_weights warning is moot. Verify tier before implementing semantic ranking dependencies. Flag for: `plans/design-decisions/` — "Does the oclaw-search Basic tier include Azure semantic ranking?"
+
+---
+
+### Confidence: High
+
+Primary sources: 5 arXiv preprints from Jan-Mar 2026 (Zep, Adaptive Memory Admission, Adaptive Memory Structures, Mem0 production paper, Contextual Retrieval), official Azure AI Search documentation (Mar 2026 API version), Voyage AI blog (Oct 2025 reranker analysis), ZeroEntropy reranking benchmarks (2025-2026), Anthropic official contextual retrieval docs, RAG-Fusion paper. All sources dated within 12 months.
+
+What would increase confidence: Running the actual RRF fusion and conversation-context changes against the live benchmark (plans/memory-recall-optimizer1.md Rounds 2-3) to verify the +8-10% precision claim holds for the specific ClawBot memory content. The research is from general-purpose RAG settings; the domain-specific vocabulary of ClawBot (Tailscale, openclaw, desazure, Azure IMDS, etc.) may amplify or dampen these effects.
+
+
+---
+
+## Research: Production Memory System Retrieval Patterns — Mem0, Zep, MemGPT/Letta, LangChain
+
+**Date**: 2026-03-28
+**Triggered by**: User request to survey how leading production memory systems handle retrieval in 2025-2026, with focus on patterns applicable to the ClawBot memory system: small store (~100 facts), Azure AI Search backend, hook-based per-turn injection.
+**Stack relevance**: Directly affects `smart_extractor.py` recall logic, the `before_agent_start` hook, and any planned Memory CI Loop improvements. Informs whether to add query reformulation, relevance gating, reranking, or conversation-aware retrieval to the existing pipeline.
+
+---
+
+### Question
+
+How do Mem0, Zep, MemGPT/Letta, and LangChain handle memory retrieval in production? What patterns are table stakes vs cutting edge? Specifically: query reformulation, adaptive/relevance gating, memory consolidation, reranking, conversation-aware retrieval, and skip-on-trivial behavior.
+
+---
+
+### Sources Consulted
+
+1. [Mem0 Advanced Retrieval — docs.mem0.ai](https://docs.mem0.ai/platform/features/advanced-retrieval) — Keyword expansion, intelligent reranking, precision filtering
+2. [Mem0 Reranker-Enhanced Search — docs.mem0.ai](https://docs.mem0.ai/open-source/features/reranker-search) — Second scoring pass after vector retrieval
+3. [Mem0 LLM Reranker — docs.mem0.ai](https://docs.mem0.ai/components/rerankers/models/llm_reranker) — LLM-based reranking component
+4. [Mem0 Search Memory — docs.mem0.ai](https://docs.mem0.ai/core-concepts/memory-operations/search) — Search API, v2 logical operators
+5. [Mem0 Criteria Retrieval — docs.mem0.ai](https://docs.mem0.ai/platform/features/criteria-retrieval) — Filter-based precision retrieval
+6. [Mem0 Add Memory — docs.mem0.ai](https://docs.mem0.ai/core-concepts/memory-operations/add) — Two-phase pipeline: Extraction + Update
+7. [Mem0 Custom Update Memory Prompt — docs.mem0.ai](https://docs.mem0.ai/open-source/features/custom-update-memory-prompt) — ADD/UPDATE/DELETE/NOOP operations
+8. [Mem0 AI Memory Research — mem0.ai/research](https://mem0.ai/research) — 26% accuracy boost; 91% p95 latency reduction vs full-context; ~1.8K vs 26K tokens
+9. [Mem0 AI Memory Layer Guide — mem0.ai/blog](https://mem0.ai/blog/ai-memory-layer-guide) — Production guidance, December 2025
+10. [Mem0 Graph Memory — mem0.ai/blog](https://mem0.ai/blog/graph-memory-solutions-ai-agents) — Mem0ᵍ graph-enhanced variant, January 2026
+11. [Mem0 for OpenClaw — mem0.ai/blog](https://mem0.ai/blog/mem0-memory-for-openclaw) — Plugin for OpenClaw: auto-recall + auto-persist per turn; two-scope (long-term user-scoped vs short-term session-scoped)
+12. [Mem0 OpenClaw Docs — docs.mem0.ai](https://docs.mem0.ai/integrations/openclaw) — Official integration docs
+13. [Zep Temporal Knowledge Graph Paper — arxiv.org/abs/2501.13956](https://arxiv.org/abs/2501.13956) — January 2025; three-tier graph; four-reranker pipeline; 94.8% DMR accuracy
+14. [Zep Paper HTML — arxiv.org/html/2501.13956v1](https://arxiv.org/html/2501.13956v1) — Ingestion with n=4 context messages; event time vs ingestion time timestamps
+15. [Zep Blog — blog.getzep.com](https://blog.getzep.com/zep-a-temporal-knowledge-graph-architecture-for-agent-memory/) — Architecture overview
+16. [Graphiti GitHub — github.com/getzep/graphiti](https://github.com/getzep/graphiti) — Open-source temporal KG engine powering Zep
+17. [Zep Graph Overview — help.getzep.com](https://help.getzep.com/graph-overview) — Production docs: edge invalidation, validity windows
+18. [Letta Intro / MemGPT — docs.letta.com](https://docs.letta.com/concepts/memgpt/) — Tiered memory model (core/recall/archival)
+19. [Letta Memory Management — docs.letta.com](https://docs.letta.com/advanced/memory-management/) — Eviction, summarization, 70% threshold
+20. [Letta Agent Memory Blog — letta.com/blog](https://www.letta.com/blog/agent-memory) — Full tiered architecture walkthrough
+21. [Letta Archival Memory — docs.letta.com](https://docs.letta.com/guides/agents/archival-memory/) — Semantic search, on-demand only
+22. [Letta Stateful Agents — docs.letta.com](https://docs.letta.com/guides/agents/memory/) — Core memory blocks, always in context
+23. [Letta Benchmarking AI Agent Memory — letta.com/blog](https://www.letta.com/blog/benchmarking-ai-agent-memory) — Filesystem vs DB benchmark
+24. [LangChain ConversationSummaryMemory — python.langchain.com](https://python.langchain.com/api_reference/langchain/memory/langchain.memory.summary.ConversationSummaryMemory.html) — LLM-generated rolling summary; reduces tokens vs buffer
+25. [LangChain Memory Jan 2026 — oneuptime.com/blog](https://oneuptime.com/blog/post/2026-01-27-langchain-memory/view) — Recent implementation patterns
+26. [Two-Room Memory Architecture — github.com/zachseven/two-room-memory](https://github.com/zachseven/two-room-memory) — Triviality gating: classifier trained on 113 examples, 100% accuracy on test; paper "Epstein and Claude 2026"
+27. [Hacker News: Two-Room Memory — news.ycombinator.com](https://news.ycombinator.com/item?id=46499184) — Community discussion on triviality gating
+28. [6 Best AI Agent Memory Frameworks 2026 — machinelearningmastery.com](https://machinelearningmastery.com/the-6-best-ai-agent-memory-frameworks-you-should-try-in-2026/) — Framework comparison survey
+29. [5 Memory Systems Compared — dev.to](https://dev.to/varun_pratapbhardwaj_b13/5-ai-agent-memory-systems-compared-mem0-zep-letta-supermemory-superlocalmemory-2026-benchmark-59p3) — Mem0 vs Zep vs Letta vs Supermemory vs SuperLocalMemory, 2026 benchmarks
+30. [LLM Context Problem 2026 — blog.logrocket.com](https://blog.logrocket.com/llm-context-problem/) — Context strategy survey
+31. [Design Patterns for Long-Term Memory — serokell.io](https://serokell.io/blog/design-patterns-for-long-term-memory-in-llm-powered-architectures) — Flat/structured/policy-managed taxonomy
+32. [Azure Foundry Agent Memory — learn.microsoft.com](https://learn.microsoft.com/en-us/azure/cosmos-db/gen-ai/agentic-memories) — Extract/Consolidate/Retrieve/Customize lifecycle; hybrid search injection at conversation start
+33. [Choosing How to Remember: Adaptive Memory Structures — arxiv.org/html/2602.14038](https://arxiv.org/html/2602.14038) — Mix-of-Experts gating for retrieval weights (recency, semantic similarity, importance)
+34. [Synapse: Episodic-Semantic Memory — arxiv.org/html/2601.02744](https://arxiv.org/html/2601.02744) — Spreading activation from episodic to semantic; conversation history drives retrieval
+35. [Diagnosing Retrieval vs Utilization Bottlenecks — arxiv.org/html/2603.02473](https://arxiv.org/html/2603.02473) — Retrieval bottleneck vs utilization bottleneck distinction, March 2026
+
+---
+
+### Findings
+
+#### 1. Mem0 — Two-Phase Pipeline with LLM Decision Layer
+
+**Retrieval pipeline:**
+Mem0 uses a two-phase architecture:
+
+- **Extraction phase**: Ingests the latest exchange + a rolling summary + the last m messages. An LLM extracts a concise set of candidate memory facts from this combined context (not just the last message).
+- **Update phase**: Each extracted candidate is compared to the top-s similar entries in the vector store. An LLM then selects one of four operations: **ADD**, **UPDATE**, **DELETE**, or **NOOP**. This prevents duplicate accumulation and keeps the store coherent.
+
+**Retrieval at inference time (search):**
+- Default: semantic similarity (vector search)
+- Advanced retrieval (platform tier): keyword expansion + intelligent reranking + precision filtering
+- Reranker: optional second-pass LLM or cross-encoder that re-scores vector hits for relevance ordering
+- v2 search API: supports AND/OR/NOT with comparison operators for metadata filtering
+
+**Query reformulation:** Mem0 does not expose query reformulation as a documented first-class feature. The LLM-based extraction phase effectively "reformulates" what to recall by identifying salient concepts, but the search query itself is the raw user message.
+
+**Memory consolidation:** Explicit — the Update phase merges duplicates. Rule: if two facts "convey the same thing," keep the one with more information. This is LLM-judged at write time, not at read time.
+
+**Adaptive retrieval (skip irrelevant turns):** Not a built-in documented feature. The system retrieves on every `search()` call; the caller decides whether to call it.
+
+**Performance benchmarks (published):**
+- 26% higher response accuracy vs OpenAI memory
+- 91% p95 latency reduction vs full-context (1.44s vs 17.12s)
+- 90% token reduction (~1.8K vs ~26K per conversation)
+
+**Relevant to our use case:** The ADD/UPDATE/DELETE/NOOP pattern is something our `smart_extractor.py` only partially implements (it adds and searches; update/delete are manual). The keyword expansion at retrieval time is directly applicable to Azure AI Search.
+
+---
+
+#### 2. Zep — Temporal Knowledge Graph with Multi-Stage Reranking
+
+**Architecture:**
+Zep is powered by Graphiti, a temporally-aware knowledge graph with three subgraph tiers:
+- **Episode subgraph**: raw conversation turns
+- **Semantic entity subgraph**: extracted named entities and facts
+- **Community subgraph**: clustered entity groups
+
+**Temporal model:**
+Every edge has four timestamps:
+- `t'created` / `t'expired`: when the fact was ingested/invalidated in the system
+- `tvalid` / `tinvalid`: the real-world time window during which the fact was true
+
+When new information contradicts an existing edge, an LLM compares them and sets `t'expired` on the old edge rather than deleting it. This enables queries like "what was true at time T?" — important for tracking state changes (e.g., "user's preferred model changed from X to Y on date Z").
+
+**Retrieval pipeline (4-stage reranking):**
+1. Candidate identification via: cosine semantic search + Okapi BM25 full-text + breadth-first graph traversal
+2. Maximal Marginal Relevance (MMR) reranker — ensures diversity, prevents redundant results
+3. Episode-mentions reranker — boosts entities that appear frequently in recent episodes
+4. Node-distance reranker — boosts nodes topologically close to the query entity in the graph
+5. Cross-encoder final reranker — generates relevance scores using cross-attention against the query
+
+**Conversation-aware ingestion:**
+During ingestion, the system processes the current message plus the last **n=4** messages (2 full turns) to provide context for named entity recognition. This means entity extraction is conversation-aware, not single-turn.
+
+**Relevance gating:** Not explicitly implemented as a skip gate. Zep processes all turns but the graph structure naturally de-emphasizes low-information episodes (they contribute few or no new nodes/edges).
+
+**Performance:** 94.8% accuracy on Deep Memory Retrieval (DMR) benchmark; 18.5% improvement on LongMemEval; 90% latency reduction vs naive approaches.
+
+**Applicable pattern for us:** The 4-stage reranking is overkill for a ~100-fact store. However, the **conversation context window during retrieval** (using last N messages, not just the current message, to form the recall query) is directly applicable and underused in our current hook.
+
+---
+
+#### 3. MemGPT / Letta — OS-Inspired Tiered Memory, Agent-Driven Retrieval
+
+**Three tiers:**
+
+| Tier | Analogy | Always in context? | How retrieved |
+|------|---------|-------------------|---------------|
+| Core Memory (Memory Blocks) | RAM | Yes — always injected | Agent edits via tools (`memory_replace`, `memory_insert`, `memory_rethink`) |
+| Recall Memory | Disk — conversation log | No | Agent calls `conversation_search` or `conversation_search_date` |
+| Archival Memory | Disk — semantic DB | No | Agent calls `archival_memory_search` (semantic) |
+
+**Key design principle:** The agent itself decides when to search archival/recall memory. There is no automatic per-turn injection of archival results. The LLM reasons over what it sees in core memory and decides whether it needs more — then issues a tool call. This is fundamentally different from Mem0/Zep/our hook which inject automatically.
+
+**Context window eviction:** When the context window fills (~70% threshold), old messages are evicted via summarization. Important details are archived before removal. The agent can re-retrieve them later via search tools.
+
+**Core memory:** Fixed slots (e.g., "persona" block + "human" block). These are always visible. Agents can write to them. Size-bounded — not suitable for large fact stores.
+
+**Applicable pattern for us:** The core memory concept maps well to our hook injection: a small set of always-on facts injected every turn. The key difference is Letta makes core memory agent-editable; our hook is read-only. The on-demand archival search model could be added as a second-tier: if recall score < threshold, skip injection; if user asks a specific question, do a deep search. This is more complex but eliminates irrelevant injections.
+
+---
+
+#### 4. LangChain — Rolling Summary + Vector Retriever
+
+**ConversationBufferMemory:** Passes entire history to the LLM. No retrieval; scales poorly. Deprecated for long sessions.
+
+**ConversationSummaryMemory:** After each turn, an LLM generates a rolling summary that replaces the raw history. Good for long sessions; loses detail. No vector retrieval.
+
+**VectorStoreRetrieverMemory:** Stores each exchange as a vector embedding. At retrieval time, queries the vector store for the most semantically similar past exchanges. Returns top-k relevant past turns, not the full history. No temporal logic, no entity graph.
+
+**ConversationSummaryBufferMemory:** Hybrid — keeps recent messages verbatim, summarizes older ones. Most practical for medium-length sessions.
+
+**Recent improvements (2025-2026):** No major architectural changes documented. LangChain memory modules are broadly considered lower-level primitives. The community recommendation for production use is to layer Mem0 or Zep on top rather than use LangChain memory directly. Query expansion is not a built-in feature of any LangChain memory type.
+
+**Applicable pattern for us:** `ConversationSummaryMemory`'s rolling summary concept is relevant — we could maintain a rolling summary of the conversation that gets included in the recall query (instead of or alongside the raw last message), giving the recall engine more context.
+
+---
+
+#### 5. Relevance Gating — Skipping Retrieval for Trivial Messages
+
+**Finding:** This is an emerging area with a clear research result.
+
+The **Two-Room Memory Architecture** (Epstein & Claude, 2026; `github.com/zachseven/two-room-memory`) is the most relevant paper. Key findings:
+
+- Triviality forms a **tighter semantic cluster** than meaningfulness. It's easier to define "trivially dismissible" than "important."
+- A lightweight classifier trained on only **113 labeled examples** achieves **100% accuracy** on novel test cases.
+- Examples classified as trivial: "what color are ladybugs", "ok", "thanks", "hello", "sure"
+- Examples classified as non-trivial: "my dad died yesterday", "I prefer TypeScript over JavaScript", "remember my API key format"
+
+The architecture:
+```
+USER INPUT → Room 1 (Active Buffer) → Triviality Gate → FLUSH (trivial) OR PERSIST → Room 2 (Storage)
+```
+
+**No production memory system (Mem0, Zep, Letta) implements built-in relevance gating at the per-turn injection level.** Zep processes all turns but the graph structure naturally absorbs low-information messages with minimal side effects. Mem0 relies on the extraction LLM to produce empty candidates for trivial inputs (implicit gating via extraction). Letta delegates to the agent's judgment.
+
+The practical implementation pattern used in production: a **small, fast binary classifier** (logistic regression or small fine-tuned model) or a **simple heuristic rule** (message length < N tokens AND no nouns → skip) runs as a pre-filter before calling the recall API. This reduces latency and avoids polluting injection context with irrelevant recalls.
+
+**For our hook:** Currently `smart_extractor.py recall` runs on every turn regardless. A triviality pre-filter before the Azure AI Search call would reduce unnecessary API calls and eliminate edge cases where "ok thanks" triggers a spurious memory injection.
+
+---
+
+#### 6. Conversation-Aware Retrieval — Using Full Context, Not Just Last Message
+
+**Finding:** All three leading systems use more than the current message for retrieval context.
+
+| System | Context used for retrieval |
+|--------|---------------------------|
+| Mem0 | Last message + rolling summary + last m messages (extraction phase) |
+| Zep | Current message + last n=4 messages (ingestion NER context) |
+| Letta | Agent reasons over full in-context window before issuing search |
+| LangChain VectorStoreRetriever | Last message only (basic); can be augmented with history manually |
+
+**Pattern:** The consensus is to use a **sliding window of the last 2-4 turns** as the retrieval query context, not just the final user message. This substantially improves recall for multi-turn conversations where the intent is distributed across messages (e.g., "... and do that with the thing we talked about earlier").
+
+**Query reformulation** (distinct from multi-turn context): Some agentic RAG frameworks apply RL-trained rewriters to reformulate the user query before retrieval. This is uncommon in pure memory systems but appears in multi-step retrieval pipelines. None of Mem0/Zep/Letta do this explicitly in their documented retrieval paths.
+
+**For our hook:** Currently we pass only the last user message to `smart_extractor.py recall`. Switching to the last 2-3 messages (concatenated or summarized) as the recall query would improve accuracy on multi-turn conversations with no architectural changes required — just a change to what gets passed to the recall function.
+
+---
+
+#### 7. Common Patterns — Table Stakes vs Cutting Edge
+
+**Table stakes (all production systems do this):**
+
+| Pattern | What it means |
+|---------|--------------|
+| Two-phase write pipeline | Extract candidates from context → LLM decides ADD/UPDATE/DELETE/NOOP |
+| Deduplication at write time | Merge similar facts before storing; don't accumulate redundant entries |
+| Semantic (vector) search at retrieval | Embed query, cosine similarity against store |
+| Small fact store, not raw history | Store extracted facts (50-200 tokens each), not full conversation logs |
+| Persistence across sessions | Memory survives restarts; stored in DB, not in-process |
+
+**Current industry standard (most do this):**
+
+| Pattern | What it means |
+|---------|--------------|
+| Hybrid search | Vector similarity + keyword (BM25/FTS) combined; better recall on named entities |
+| Reranking after vector retrieval | Second-pass scoring to improve precision; LLM or cross-encoder |
+| Metadata filtering | Filter by user ID, date range, category before ranking |
+| Temporal tracking | Know when facts changed; don't just overwrite |
+
+**Cutting edge / emerging (some do this):**
+
+| Pattern | What it means |
+|---------|--------------|
+| Graph-enhanced memory | Entity relationships + temporal edges (Zep/Graphiti, Mem0ᵍ) |
+| Triviality gating | Pre-filter to skip retrieval for low-information turns |
+| Conversation-window retrieval | Use last N turns (not just last message) as retrieval context |
+| Adaptive retrieval weights | MoE gates that learn recency vs semantic vs importance weights |
+| Agent-driven retrieval decisions | Agent issues search tool calls on demand rather than auto-inject |
+
+**Where our system stands today:**
+- Table stakes: mostly covered (Azure AI Search semantic, SQLite FTS5, session extraction)
+- Standard: partial (FTS5 hybrid, no reranking, no metadata filtering, no temporal tracking)
+- Cutting edge: not implemented
+
+**Highest-leverage gaps for our ~100-fact store:**
+
+1. **Conversation-window retrieval** — Pass last 2-3 messages to recall, not just the current message. Zero architecture change; modify one parameter in the hook. Expected improvement: meaningful for multi-turn sessions.
+2. **Trivial turn gating** — Pre-filter in the hook before calling Azure AI Search. Reduce unnecessary calls and spurious injections. Simple heuristic or tiny classifier.
+3. **ADD/UPDATE/DELETE/NOOP at write time** — Currently `smart_extractor.py` only adds. Updating and soft-deleting contradicted facts would keep the store coherent as ClawBot learns new information (e.g., model config changes, OAuth token paths that moved).
+
+---
+
+### Recommendation
+
+**Immediate (low effort, high impact):**
+
+1. **Multi-turn retrieval context**: In the `before_agent_start` hook, pass the last 2-3 messages (not just the last user message) as the recall query. No new infrastructure needed — just concatenate or join them before calling `smart_extractor.py recall`.
+
+2. **Trivial turn gate**: Add a pre-check in the hook. If `len(message.strip()) < 20 and no_proper_nouns(message)` → skip recall entirely. This eliminates spurious Azure AI Search calls on ack messages ("ok", "got it", "thanks").
+
+**Medium term (moderate effort):**
+
+3. **ADD/UPDATE/DELETE/NOOP write pipeline**: Extend `smart_extractor.py` extraction to detect when a new fact contradicts an existing memory and mark the old one as superseded (soft delete or update). This prevents the store from containing both "gateway model is gpt-5.2" and "gateway model is claude-opus-4.6" simultaneously.
+
+4. **Hybrid search validation**: Confirm that Azure AI Search is being called with both semantic + keyword (BM25) modes for each recall. The current implementation may be doing semantic-only. Adding keyword search improves recall for entity names (model IDs, OAuth paths, port numbers).
+
+**Not recommended for our scale:**
+
+- Graph-based memory (Zep/Graphiti approach): overhead is designed for thousands of entities and multi-session relationship tracking. At ~100 facts, a flat semantic store with good dedup is sufficient.
+- Cross-encoder reranking: adds ~200-500ms latency per recall; not justified at ~100 facts where top-3 results from Azure AI Search are already precise.
+- Full Mem0 or Zep adoption: our existing stack (SQLite + Azure AI Search + smart_extractor.py) implements the core of what these systems provide. We'd be replacing working infrastructure for marginal gains.
+
+---
+
+### Design Decision Flags
+
+The following questions should be tracked in `plans/design-decisions/`:
+
+1. **Multi-turn retrieval window size**: How many prior messages should the hook concatenate for the recall query? Options: last 1 (current), last 2, last 3, or rolling LLM summary. Trade-off: more context = better recall accuracy vs slightly larger recall query token cost.
+
+2. **Trivial turn gate implementation**: Simple heuristic (length + noun check) vs lightweight classifier (Two-Room approach, 113 training examples). Heuristic is zero-latency; classifier needs training data curation.
+
+3. **Contradiction handling at write time**: Should `smart_extractor.py` detect and soft-delete contradicted facts during extraction, or should this be a separate nightly cleanup job (similar to the planned Memory CI Loop dedup sweep)?
+
+---
+
+### Compatibility Notes
+
+- All recommendations above are compatible with the existing Azure AI Search + SQLite + Python stack on the VM.
+- The Two-Room Memory Architecture classifier approach requires training data from real ClawBot sessions — the 113-example dataset in the repo is generic and would need supplementing with domain-specific examples (VM ops messages, OAuth flows, model config messages).
+- Mem0's OpenClaw integration plugin exists (`docs.mem0.ai/integrations/openclaw`) but would replace our custom stack entirely; not recommended unless we want to externalize memory management.
+- Zep/Graphiti requires Neo4j or a compatible graph DB — not currently in the VM stack; significant infra addition.
+
+### Confidence: High
+
+Primary sources: official docs for all four systems (docs.mem0.ai, docs.letta.com, help.getzep.com, python.langchain.com); peer-reviewed paper for Zep (arXiv 2501.13956, January 2025); Two-Room Memory Architecture paper (2026); multiple 2026 framework comparison surveys from MachineLearningMastery, DEV Community, and Vectorize.io. Benchmark numbers are from Mem0's own published research and Zep's paper — treat as vendor-reported (not independently verified). The "common patterns" taxonomy is consensus-derived from 5+ independent sources dated within 12 months.
+
+What would increase confidence: running the ClawBot hook with multi-turn context enabled and measuring retrieval accuracy delta against the existing rubric from the Memory CI Loop PRD.
+
+---
+
+## Research: Anthropic Contextual Retrieval — Applicability to Fact-Based Memory Stores
+
+**Date**: 2026-03-28
+**Triggered by**: User request to evaluate Contextual Retrieval for the ClawBot memory system (~100 atomic facts in Azure AI Search + SQLite), and to survey Anthropic's latest RAG, embedding, and tool-use memory recommendations.
+**Stack relevance**: Directly affects `smart_extractor.py`, `memory_bridge.py`, and the embedding pipeline in `~/.openclaw/workspace/skills/clawbot-memory/`. Any changes to how facts are embedded before sync to Azure AI Search would require modifications to `memory_bridge.py` and potentially a one-time re-embedding run.
+
+---
+
+### Question
+
+1. How does Anthropic's Contextual Retrieval work, and what improvement numbers did they report?
+2. Is the technique applicable to a small fact-based memory store (~100 atomic facts) vs large document chunk corpora?
+3. How would you implement it for memory facts specifically?
+4. What are Anthropic's latest recommendations for RAG/retrieval, tool-use memory, and prompt injection vs tool-based retrieval?
+5. Any Azure AI Search integration considerations?
+
+---
+
+### Sources Consulted
+
+1. [Anthropic — Contextual Retrieval (Sept 2024)](https://www.anthropic.com/news/contextual-retrieval) — Primary source; full method description and benchmarks
+2. [Anthropic — Contextual Retrieval Appendix II (full experiment results)](https://assets.anthropic.com/m/1632cded0a125333/original/Contextual-Retrieval-Appendix-2.pdf) — Breakdown of results per dataset
+3. [Anthropic Claude Cookbook — Contextual Embeddings Guide](https://platform.claude.com/cookbook/capabilities-contextual-embeddings-guide) — Official implementation reference
+4. [DataCamp — Anthropic Contextual Retrieval: A Guide with Implementation](https://www.datacamp.com/tutorial/contextual-retrieval-anthropic) — Implementation walkthrough
+5. [Together AI Docs — How to Implement Contextual RAG from Anthropic](https://docs.together.ai/docs/how-to-implement-contextual-rag-from-anthropic) — Cross-platform implementation guide
+6. [Anthropic Engineering — Effective Context Engineering for AI Agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — 2025 agent memory patterns; "just in time" retrieval
+7. [Anthropic Engineering — Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) — Tool-use vs prompt injection patterns
+8. [Anthropic — Memory Tool docs](https://console.anthropic.com/docs/en/agents-and-tools/tool-use/memory-tool) — File-based memory tool pattern
+9. [Azure AI Search — Hybrid Search Overview](https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview) — BM25 + vector RRF merging
+10. [Azure AI Search — BM25 Relevance Scoring](https://learn.microsoft.com/en-us/azure/search/index-similarity-and-scoring) — BM25 tuning knobs
+11. [InfoQ — Anthropic Unveils Contextual Retrieval](https://www.infoq.com/news/2024/09/anthropic-contextual-retrieval/) — Third-party coverage confirming benchmarks
+12. [arXiv — Reconstructing Context (Apr 2025)](https://arxiv.org/html/2504.19754v1) — Academic follow-up on context reconstruction in RAG
+13. [AWS — Contextual Retrieval in Anthropic using Amazon Bedrock Knowledge Bases](https://aws.amazon.com/blogs/machine-learning/contextual-retrieval-in-anthropic-using-amazon-bedrock-knowledge-bases/) — Cross-cloud implementation notes
+
+---
+
+### Findings
+
+#### 1. How Contextual Retrieval Works
+
+Published September 2024, Contextual Retrieval solves a fundamental flaw in standard RAG: when a document is split into chunks, each chunk loses its surrounding context. A chunk reading "The company's revenue grew by 3%" is ambiguous without knowing which company or time period. This causes retrieval to fail because the embedding does not capture the right semantic identity.
+
+**Two sub-techniques, both applied at ingestion time (not query time):**
+
+**Contextual Embeddings:**
+- For each chunk, pass both the chunk AND its source document to Claude
+- Ask Claude to generate a short 50–100 token contextual description that situates the chunk within the whole document
+- Prepend that context to the chunk
+- Embed the augmented chunk
+- Store the augmented text in the vector index
+
+**Contextual BM25:**
+- Apply the same context-prepended chunk to the BM25 (keyword/TF-IDF) index as well
+- This gives keyword search the same disambiguation benefit
+
+**The prompt Anthropic used:**
+```
+Here is the document:
+<document>
+{{WHOLE_DOCUMENT}}
+</document>
+
+Here is the chunk we want to situate within the whole document:
+<chunk>
+{{CHUNK_CONTENT}}
+</chunk>
+
+Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else.
+```
+
+**Cost optimization with prompt caching:**
+The whole document is loaded into the cache ONCE. Each subsequent chunk request is a cache hit. With 800-token chunks, 8k-token documents, 50-token instructions, and 100-token context output, the one-time ingestion cost is approximately $1.02 per million document tokens. Prompt caching reduces this cost by up to 90% vs cold reads.
+
+#### 2. Performance Numbers Reported
+
+| Technique | Retrieval Failure Rate (top-20 chunks) | Reduction vs Baseline |
+|-----------|----------------------------------------|-----------------------|
+| Baseline (standard embeddings only) | 5.7% | — |
+| Contextual Embeddings only | 3.7% | -35% |
+| Contextual Embeddings + Contextual BM25 | 2.9% | -49% |
+| Contextual Embeddings + Contextual BM25 + Reranking | ~1.9% | -67% |
+
+On codebase retrieval specifically: Pass@10 improved from ~87% to ~95%.
+
+**Best embedding models tested:** Voyage AI and Gemini embeddings outperformed others. Cohere was the reranker tested (Voyage reranker not evaluated in Anthropic's published run).
+
+**Recommended production stack:**
+1. Contextual Embeddings (Voyage AI or Gemini for the vectors)
+2. Contextual BM25 (keyword index on the same augmented text)
+3. Rank fusion (combine vector + BM25 results)
+4. Reranking step (Cohere Rerank or equivalent)
+5. Top-20 chunks in prompt
+
+#### 3. Applicability to Small Fact-Based Memory Stores (~100 Atomic Facts)
+
+**Verdict: Partially applicable, but different tradeoffs than large document corpora.**
+
+Anthropic explicitly notes: "If your knowledge base is smaller than 200,000 tokens (~500 pages), you can just include the entire knowledge base in the prompt — no RAG needed at all."
+
+100 atomic facts averaging ~50–100 tokens each = 5,000–10,000 tokens total. This fits easily in a single prompt and is below the 200k threshold. **For pure retrieval accuracy, full-context injection beats RAG entirely at this scale.**
+
+However, the ClawBot memory system faces a different constraint: the facts span multiple sessions and projects, and the hook must return in under 4 seconds at every turn. At scale (if the memory store grows to 1,000+ facts), full-context injection becomes impractical.
+
+**Where Contextual Retrieval still helps at small scale:**
+
+Atomic facts can suffer from the same decontextualization problem as document chunks, but in a different way. A fact like "The gateway crashed after setting tailscale.mode to direct" is self-contained. But a fact like "Port 18793 is used for this service" becomes ambiguous without the project context embedded in the vector.
+
+The contextual prefix approach for facts would look like:
+
+```
+# Without context prefix (current state)
+Embedded text: "Port 18793 is used for Google OAuth redirect (GDrive)"
+
+# With context prefix (contextual embedding)
+Embedded text: "This fact is from the openclaw_vm project, SSH tunnel configuration domain, recorded 2026-02-20: Port 18793 is used for Google OAuth redirect (GDrive)"
+```
+
+The prefix adds ~20–40 tokens per fact (minimal cost) but substantially improves semantic disambiguation when:
+- The same concept appears across multiple projects (e.g., "port X is used for Y" in different systems)
+- The fact is terse and relies on ambient context (e.g., "max retries set to 3" — for which system?)
+- Time-sensitive facts need temporal ordering (e.g., two conflicting facts from different dates)
+
+**Quantitative benefit at 100-fact scale: likely low (~5–15% recall improvement).** The gains are highest when the corpus is large and chunks are ambiguous. At 100 facts with distinct content, the vector similarity search already works reasonably well. But the technique becomes more valuable as the store grows past 500–1,000 facts.
+
+#### 4. Proposed Implementation for ClawBot Memory Facts
+
+Three types of context prefixes are applicable:
+
+**Option A — Project + Domain Context (highest priority)**
+```
+[Project: openclaw_vm | Domain: SSH/networking | Type: fix]
+Port 18793 is used for Google OAuth redirect (GDrive)
+```
+This is the most impactful: prevents cross-project collisions and disambiguates terse facts.
+
+**Option B — Temporal Context**
+```
+[Date: 2026-02-20 | Project: openclaw_vm | Domain: OAuth]
+The GDrive token path changed to ~/.config/openclaw-gdrive/token-openclawshared.json
+```
+Helps when facts get updated over time and the old + new versions coexist.
+
+**Option C — LLM-Generated Situational Context (full Contextual Retrieval approach)**
+For each fact at sync time, call Claude to generate a situational sentence:
+```
+This fact relates to the SSH tunnel port configuration in the openclaw_vm project, specifically the Google OAuth service port assignments recorded in February 2026.
+
+Port 18793 is used for Google OAuth redirect (GDrive)
+```
+
+**Implementation path in current stack:**
+
+The `memory_bridge.py sync` cron job currently embeds the raw fact content before pushing to Azure AI Search. The change would be:
+
+1. Before embedding in `memory_bridge.py`, construct a context prefix from the fact's existing metadata fields: `project`, `tags`, `created_at`
+2. Prepend to the text: `f"[Project: {fact.project} | Tags: {', '.join(fact.tags)} | Date: {fact.created_at[:10]}]\n{fact.content}"`
+3. Embed the augmented string
+4. Store the raw fact in the `content` field (for display) but the augmented string as the embedding input
+
+This is Option A and requires no LLM call — just metadata formatting. Cost: zero. Benefit: measurable disambiguation improvement.
+
+For Option C (LLM-generated context), use prompt caching: load all facts in a single cached prompt, generate context for each. One-time cost at ingestion. For ~100 facts at ~100 tokens each = ~10,000 tokens; with prompt caching, subsequent runs cost ~10% of first run.
+
+**Important:** The recall side (at query time) does NOT need to change. The query is still the raw user message or topic string — only the stored embeddings are augmented.
+
+#### 5. Anthropic's Latest RAG and Retrieval Recommendations (2025–2026)
+
+From Anthropic Engineering — "Effective Context Engineering for AI Agents" (2025):
+
+**"Just in time" context strategy:**
+Agents should maintain lightweight identifiers (file paths, stored queries, memory IDs, web links) and use these to dynamically load data into context at runtime via tools. This is preferred over stuffing everything into the system prompt.
+
+**Progressive disclosure:**
+Rather than front-loading all context, agents should be designed to discover and retrieve context iteratively — each tool call yields context that informs the next.
+
+**Note-taking for persistence:**
+Agents summarize completed phases and store to external memory before context fills. When approaching context limits, spawn fresh subagents with clean context + a handoff summary from memory.
+
+**When to use full-context injection (no RAG):**
+- Knowledge base < 200,000 tokens: inject everything, skip RAG entirely
+- Prompt caching makes repeated injection cheap (>90% cost reduction after first cache load)
+
+**Tool-use memory vs prompt injection:**
+- Prompt injection (system prompt memory): appropriate for small, stable, high-priority facts. Fast, zero latency, always present.
+- Tool-use retrieval: appropriate for large or growing knowledge bases, lower-priority facts, or when facts need to be dynamically selected based on query. Higher latency but scales indefinitely.
+- Hybrid (ClawBot current approach): hook injects top-3–5 recalled facts into the system prompt at call time. This is a reasonable middle ground — retrieval happens but facts appear as prompt context, not tool results.
+
+**Anthropic's note on retrieval quality:**
+The primary bottleneck in RAG systems is not the LLM's ability to use retrieved context — it is the retrieval step itself (failing to surface the right chunks). Contextual Retrieval directly attacks this bottleneck. Reranking is the most impactful single addition after contextual embeddings.
+
+#### 6. Azure AI Search Integration Considerations
+
+Azure AI Search already supports hybrid search (BM25 + vector) with RRF merging — this is the current ClawBot deployment. Applying Contextual Retrieval to this setup means:
+
+**Index-side changes (ingestion):**
+- Add a new field or use the existing content field: store the context-augmented text as the value that gets embedded and indexed for BM25
+- Store the raw fact separately (e.g., `raw_content` field) for display/recall output
+- OR: keep a single `content` field but generate the embedding from `context_prefix + content`; Azure AI Search lets you control which fields are vectorized
+
+**Query-side: no changes required.** The query embedding is still the raw user topic string. The context-augmented embeddings in the index are closer to the right neighbors in embedding space.
+
+**Reranking on Azure:**
+Azure AI Search has its own semantic reranker (powered by Microsoft's cross-encoder models, not Cohere). It can be applied after hybrid retrieval as a third pass. This is the Azure-native equivalent of the Cohere rerank step Anthropic recommends. The semantic reranker is available on Basic+ tier (already in use at ~$74/mo).
+
+**Azure-specific BM25 tuning:**
+Azure's BM25 uses `b=0.75` and `k1=1.2` by default. For short atomic facts (50–100 tokens), consider lowering `b` toward 0.5 to reduce document-length normalization sensitivity — all facts are approximately the same length so length normalization adds noise.
+
+**Practical upgrade path for current stack:**
+
+| Step | Change | Effort | Expected Gain |
+|------|--------|--------|---------------|
+| 1 | Add metadata prefix to facts before embedding in `memory_bridge.py` | Low (~15 lines) | +5–15% recall |
+| 2 | Enable Azure semantic reranker on retrieval queries in `smart_extractor.py` | Low (1 query param) | +10–20% precision |
+| 3 | Add BM25 field with context-augmented text to Azure index schema | Medium (re-index required) | +10–20% keyword recall |
+| 4 | Add LLM-generated situational context at extraction time | High (Claude API call per fact) | +20–35% recall (per Anthropic numbers, but on smaller corpus) |
+
+Steps 1 and 2 are the recommended near-term changes: low effort, no re-index required for step 2, and provides measurable improvements before investing in the full LLM-generated context pipeline.
+
+---
+
+### Recommendation
+
+**Near-term (low effort, high ROI):**
+1. Modify `memory_bridge.py` to prepend a structured metadata prefix to fact content before generating embeddings. Use existing fields: `project`, `tags`, `created_at`. No LLM calls, no schema changes — just format the embedding input string.
+2. Enable the Azure AI Search semantic reranker on the `smart_extractor.py` recall query. One query parameter change.
+
+**Medium-term (when corpus exceeds ~500 facts):**
+3. Add a BM25-indexed `augmented_content` field to the Azure Search index schema. Populate it with the same context-prefixed text used for embeddings. Re-index (one-time cost — ~100 facts is trivial to re-sync).
+4. Evaluate whether the `smart_extractor.py` recall path should do two-pass retrieval: first vector + BM25 for top-20 candidates, then semantic reranker for top-5 to inject into the hook.
+
+**Long-term (if corpus grows to 1,000+ facts):**
+5. Implement full LLM-generated contextual sentences at extraction time (Option C above). Use prompt caching to amortize cost. This is the full Anthropic Contextual Retrieval approach and is expected to reduce retrieval failures by 35–49% vs baseline embeddings.
+
+**Do NOT** implement contextual retrieval by changing the query-side embedding — only the stored/indexed embeddings should be augmented. Query text stays raw.
+
+**Design decision flagged:** See `plans/design-decisions/` — "Should memory_bridge.py prepend metadata context prefix before embedding, and how should the Azure AI Search index schema be updated to support hybrid contextual retrieval?"
+
+---
+
+### Compatibility Notes
+
+- `memory_bridge.py` currently uses `azure-search-documents` with 3072-dim embeddings (Azure OpenAI text-embedding-3-large). Prepending 20–40 token context prefix does not change the embedding model, dimension, or Azure index schema — it only changes the input string. Safe to deploy without re-indexing existing documents (new embeds will be generated only for new/updated facts).
+- Azure AI Search semantic reranker requires `queryType=semantic` and `semanticConfiguration` in the query. The index must have a semantic configuration defined. Check the existing index definition: `az search index show --name <index-name> --service-name oclaw-search --resource-group oclaw-rg`.
+- Reranking adds ~100–300ms latency per query. The hook currently has a 4-second timeout. This is within budget.
+- Voyage AI embeddings (Anthropic's top recommendation) are NOT currently used — the stack uses Azure OpenAI embeddings. Switching would require a full re-index and adds an external API dependency. Not recommended given the existing Azure setup.
+- Cohere Rerank is NOT required — Azure semantic reranker is functionally equivalent and already part of the Azure AI Search subscription.
+
+---
+
+### Confidence: High
+
+Primary sources are Anthropic's own blog post (Sept 2024), the official cookbook, and the published Appendix II results PDF. The improvement numbers (35% / 49% / 67%) are directly from Anthropic's published benchmarks, not third-party claims. The applicability analysis for small fact stores is a reasoned extrapolation — Anthropic's explicit 200k-token threshold guidance is cited directly. Azure AI Search integration notes are from official Microsoft Learn docs (2025).
+
+What would increase confidence: Running an A/B test on the actual ClawBot memory index — compare recall@5 with and without the metadata prefix on a set of 20–30 representative queries from past ClawBot sessions.
+

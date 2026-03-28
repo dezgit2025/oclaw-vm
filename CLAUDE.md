@@ -177,15 +177,31 @@ ssh oclaw "tailscale status"
 - **NEVER run `tailscale set --advertise-exit-node` on oclaw** — Tailscale cannot use and be an exit node simultaneously. This clears chromeos-nissa and drops residential egress. The VM should only **use** an exit node, never **be** one
 - See [exit node rules](manage-oclaw/opslog/tailscale-exit-node-rules.md) for full documentation
 
-### IMDS Route Exception
+### IMDS & Wire Server Route Exceptions
 
-The exit node routes all traffic — including Azure IMDS (`169.254.169.254`). An ip rule exception forces IMDS through `eth0`:
+The exit node routes all traffic — including Azure IMDS (`169.254.169.254`) and Wire Server (`168.63.129.16`). IP rule exceptions force both through `eth0`:
 
 ```bash
-sudo ip rule add to 169.254.169.254 lookup main priority 100
+sudo ip rule add to 169.254.169.254 lookup main priority 100  # IMDS
+sudo ip rule add to 168.63.129.16 lookup main priority 101    # Wire Server (backup agent, VM extensions)
 ```
 
-This is persisted via `/etc/networkd-dispatcher/routable.d/50-imds-route.sh`. **Without this, the Foundry MI proxy cannot get tokens and all LLM calls fail with 500.** See [opslog](manage-oclaw/opslog/2026-02-20-tailscale-exit-node-breaks-imds.md).
+**Persistence (two layers):**
+1. **Boot script:** `/etc/networkd-dispatcher/routable.d/50-imds-route.sh` — adds rules on network up
+2. **Heartbeat cron (every 15 min):** `/usr/local/bin/ensure-imds-route.sh` — re-adds rules if Tailscale wipes them
+
+```
+# Root crontab
+2,17,32,47 * * * * /usr/local/bin/ensure-imds-route.sh
+```
+
+**Why the heartbeat:** Tailscale periodically refreshes its routing table and can wipe the ip rules added at boot. Discovered 2026-03-28 when `az login --identity` timed out on IMDS even though the boot script had run. The heartbeat ensures max 15 min of downtime if Tailscale wipes the rules.
+
+**Without these rules:**
+- IMDS: Foundry MI proxy cannot get tokens → all LLM calls fail with 500
+- Wire Server: VM backup agent cannot authenticate → backups fail (was broken Feb 19 – Mar 28)
+
+See [opslog](manage-oclaw/opslog/2026-02-20-tailscale-exit-node-breaks-imds.md) for the original IMDS issue.
 
 ### Gateway Tailscale Mode
 

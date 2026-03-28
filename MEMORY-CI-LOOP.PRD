@@ -131,6 +131,173 @@ Key tuning differences:
 
 ---
 
+## Current Retrieval Architecture (How Recall Works Per Turn)
+
+Reference documentation for the end-to-end retrieval pipeline. Every ClawBot conversation turn triggers this flow.
+
+### Pipeline Overview
+
+```
+User Message (ClawBot turn)
+       ↓
+before_agent_start hook (handler.js)
+       ↓
+Extract last user message → truncate to 200 chars
+       ↓
+smart_extractor.py recall "{query}" -k 5  (4s timeout, ~130ms actual)
+       ↓
+Topic Expansion (e.g. "pricing" → ["pricing", "monetization", "subscription", ...])
+       ↓
+5 parallel mem.py search queries (one per expanded topic)
+       ↓
+Deduplicate + Priority Rank by tag type
+       ↓
+┌──────────────────────────────────────────────────────┐
+│  Azure AI Search — Hybrid Query                       │
+│                                                       │
+│  1. Vector:    text-embedding-3-large (3072-dim HNSW) │
+│  2. BM25:     content (1.5x) + tags (1.2x)           │
+│  3. Semantic:  memory-semantic-config reranker         │
+│                                                       │
+│  Scoring Profile "memory-relevance":                  │
+│    • Freshness:  1.5x boost, 80-day quadratic decay   │
+│    • Importance: 2.0x boost, linear 1-10 scale        │
+└──────────────────────────────────────────────────────┘
+       ↓
+Fallback: Azure (2s timeout) → SQLite FTS5 → silent skip
+       ↓
+Format as <clawbot_context> block (decisions, questions, context)
+       ↓
+Return as prependContext → injected before user prompt
+```
+
+### Step 1: Hook Trigger
+
+**File:** `~/.openclaw/hooks/clawbot-memory/handler.js`
+
+The `before_agent_start` hook fires every turn. It walks backward through `event.messages` to find the last user message, extracts text content (filters out images/tool results), and truncates to 200 characters for the search query.
+
+### Step 2: Topic Expansion
+
+**File:** `smart_extractor.py` → `cmd_recall()`
+
+Expands a single query into 3-8 related search terms using a domain map. Example: `"pricing"` → `["pricing", "monetization", "subscription", "revenue", "freemium", "payment"]`. Capped at 8 queries to maintain speed.
+
+### Step 3: Azure AI Search — Hybrid Query
+
+**File:** `memory_bridge.py` → `AzureSearchBridge.search()`
+
+Each expanded topic runs a hybrid search combining three signals:
+
+| Signal | Method | Weight/Config |
+|--------|--------|---------------|
+| **Vector search** | `VectorizableTextQuery` on `content_vector` field | `text-embedding-3-large` (3072-dim), HNSW algorithm |
+| **BM25 keyword** | Full-text search via `search_text` parameter | `content: 1.5x`, `tags: 1.2x` |
+| **Semantic reranking** | Azure built-in semantic ranker | `memory-semantic-config` (prioritizes `content` field) |
+
+**Filters applied:** `active eq true`, optional `project eq '{project}'`
+
+### Step 4: Scoring Profile
+
+**Profile name:** `memory-relevance` (live on `clawbot-memory-store` index)
+
+| Boost | Field | Multiplier | Interpolation | Details |
+|-------|-------|-----------|---------------|---------|
+| Freshness | `updated_at` | 1.5x | Quadratic | 80-day window (P80D). Recent memories rank higher; decays to zero at 80+ days |
+| Importance | `importance` | 2.0x | Linear | Scale 1-10. Pinned memories: critical=10, important=9, reference=8 |
+
+**Combined scoring:** `final = (BM25 + vector + semantic) × freshness_boost × importance_boost`
+
+### Step 5: Priority Ranking (Post-Search)
+
+After Azure returns results, `cmd_recall()` re-ranks by tag type:
+
+| Tag | Priority | Symbol |
+|-----|----------|--------|
+| `type:open_question` | 5 (highest) | |
+| `type:pivot` | 4 | |
+| `type:decision` | 3 | |
+| `type:metric` / `type:competitive` | 2 | |
+| Everything else | 0 | |
+
+Top 10 kept after dedup across all expanded queries.
+
+### Step 6: Formatting & Injection
+
+Output wrapped in `<clawbot_context>` tags with three categories:
+
+```
+<clawbot_context>
+Topic: {topic}
+Retrieved: {count} relevant memories
+
+ACTIVE DECISIONS:
+  ✅ [date] fact text
+  🔄 PIVOT [date] fact text
+
+OPEN QUESTIONS:
+  ❓ question text
+
+RELEVANT CONTEXT:
+  • context text
+</clawbot_context>
+```
+
+Returned as `{ prependContext: output }` — OpenClaw prepends this before the user's message in the prompt.
+
+### Step 7: Fallback Chain
+
+| Layer | Timeout | What happens |
+|-------|---------|-------------|
+| Azure AI Search (hybrid) | 2s | Primary path — vector + keyword + semantic |
+| SQLite FTS5 (local) | — | Keyword-only fallback if Azure unreachable |
+| Silent skip | — | Both fail → no context injected, no error shown |
+
+### How Azure Gets Populated
+
+Daily cron at **20:35 UTC** runs `memory_bridge.py sync` for incremental SQLite → Azure sync.
+
+| Step | What |
+|------|------|
+| Load `.sync_state.json` | Cursor-based — only syncs changes since last run |
+| Query local SQLite | New, updated, and soft-deleted memories |
+| Transform to Azure docs | Content auto-vectorized by Azure's integrated `text-embedding-3-large` vectorizer |
+| Upload batch | `client.upload_documents()` — partial success supported |
+| Delete soft-deletes | Removes inactive memories from Azure |
+| Save state | Updates cursor, prunes old hashes >30 days |
+
+**Resilience:** Failed docs queued for retry. After 3 consecutive failures, sync pauses. `--full` flag forces re-upload of all active memories.
+
+### Index Schema
+
+**Index name:** `clawbot-memory-store` | **Resource group:** `oclaw-rg`
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `id` | String | Unique memory identifier |
+| `content` | String | Fact text (searchable, auto-vectorized) |
+| `content_vector` | Collection(Single) | 3072-dim embeddings (HNSW) |
+| `project` | String | Project context (filterable) |
+| `tags` | String | LLM-assigned tags (searchable) |
+| `category` | String | Derived category (filterable) |
+| `importance` | Int32 | 1-10 scale (filterable, sortable, scoring) |
+| `access_count` | Int32 | Times recalled (filterable, sortable) |
+| `active` | Boolean | Soft-delete flag (filterable) |
+| `created_at` | DateTimeOffset | Extraction timestamp |
+| `updated_at` | DateTimeOffset | Last modified timestamp |
+
+### Key Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `handler.js` | VM: `~/.openclaw/hooks/clawbot-memory/` | Hook executor, message extraction, command invocation |
+| `smart_extractor.py` | VM: `~/.openclaw/workspace/skills/clawbot-memory/` | `cmd_recall()`, topic expansion, priority ranking |
+| `memory_bridge.py` | VM: `~/.openclaw/workspace/skills/clawbot-memory/` | Azure hybrid search, scoring profile, sync |
+| `mem.py` | VM: `~/.openclaw/workspace/skills/clawbot-memory/cli/` | SQLite search CLI (FTS5 fallback) |
+| Source (laptop) | `/Users/dez/Projects/oclaw_brain/oclaw_brain_skill_v1/` | Original source files |
+
+---
+
 ## Key Architecture Decisions
 
 Decided during Mar 27, 2026 planning session:
