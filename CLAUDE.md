@@ -344,7 +344,13 @@ Full model reference, available IDs, and config examples: **[manage-oclaw/opslog
 
 ## ClawBot Memory System (oclaw_brain)
 
+**Memory locations guide:** **[MEMORY-LOCATIONS.md](MEMORY-LOCATIONS.md)** — Two separate memory systems exist (ClawBot on VM vs Claude Code on Mac). **Do not mix them.** Read this file before touching any memory DB, CLI, or cron.
+
 Persistent cross-session memory for ClawBot, deployed 2026-02-23. Two injection paths: always-on hook + on-demand deep recall skill. Full learnings: **[plans/memory-learnings-v1.md](plans/memory-learnings-v1.md)**
+
+**Memory CI Loop PRD:** **[MEMORY-CI-LOOP.PRD](MEMORY-CI-LOOP.PRD)** — Quality improvement system: research → extract → score → normalize → boost → decay → report → repeat.
+
+**Memory test commands:** **[manage-oclaw/MEMORY-TEST-COMMANDS.md](manage-oclaw/MEMORY-TEST-COMMANDS.md)** — All SSH commands for health check, search, pin, recall, extraction, lifecycle, Azure search, SQLite queries, cron checks, and troubleshooting.
 
 ### Architecture
 

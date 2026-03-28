@@ -1,0 +1,290 @@
+# Memory CI Loop — Product Requirements Document
+
+**Owner:** Des Villa
+**Date:** 2026-03-27
+**Status:** Planning complete, execution not started
+
+---
+
+## Vision
+
+Build a continuous improvement loop for AI agent memory — extract facts, evaluate quality, tune tags, manage lifecycle, and measure recall — so memories get better over time instead of accumulating noise.
+
+Think of it as **CI/CD for memory**: research → extract → score → normalize → boost → decay → report → repeat.
+
+Research comes first because everything changes — new LLM models, new embedding strategies, new best practices for fact extraction and vector search. The loop should always start by checking what's current before refining.
+
+```
+ ┌──────────────────────────────────────────────────────────────────┐
+ │                      MEMORY CI LOOP                              │
+ │                                                                  │
+ │   RESEARCH ──→ EXTRACT ──→ SCORE ──→ NORMALIZE ──→ BOOST       │
+ │      ↑                                                │         │
+ │      │            DECAY ←── REPORT ←���─────────────────┘         │
+ │      │               │                                          │
+ │      └───────────────┴──── FEEDBACK (loop back to research)     │
+ │                                                                  │
+ │   Research:   Best practices for extraction, embeddings,         │
+ │               scoring, vector search. Check what models are      │
+ │               available. Check Anthropic/OpenAI/Azure updates.   │
+ │               Update approach BEFORE each optimization cycle.    │
+ │                                                                  │
+ │   Lifecycle:  PIN (never decay)                                  │
+ │               PERMANENT (never decay, quarterly review)          │
+ │               STALE (>90 days, 0 access → auto-delete)          │
+ │               ACTIVE (default, subject to recency boost)         │
+ │                                                                  │
+ │   Targets:    ClawBot (VM)  ←→  Claude Code (Mac)               │
+ └──────────────────────────────────────────────────────────────────┘
+```
+
+### Why research is step 1
+
+- **Models change.** GPT-5.2 extracts today. Next quarter it might be GPT-5.5 or Claude Opus. The extraction prompt, scoring model, and embedding model should be re-evaluated each cycle.
+- **Best practices evolve.** Memory systems (Mem0, Zep, LangChain) ship new patterns. Academic papers publish new dedup/retrieval techniques. What we build today may have a better approach in 3 months.
+- **Azure AI Search adds features.** New scoring functions, new vector search modes, new hybrid strategies. Check what's available before tuning.
+- **Our own data changes.** The monthly report shows what's working and what's not. Research should be informed by our own metrics — "tag quality dropped, what are others doing about this?"
+
+### Research cadence
+
+| Cadence | What to check | Where to look |
+|---------|--------------|---------------|
+| **Each optimization cycle** (before any code changes) | Current best practices for the specific area being tuned | Anthropic blog, OpenAI cookbook, Mem0/Zep docs, academic papers, Azure AI Search docs |
+| **Quarterly** (with the dedup/A/B sweep) | New models available, embedding upgrades, scoring innovations | Model release notes, Azure updates, community benchmarks |
+| **On drift** (when metrics drop) | Targeted research on the specific problem | Depends on the metric — tag quality, recall precision, extraction accuracy |
+
+### Research artifacts
+
+Save findings to `plans/research-log.md` (already exists) or skill-specific `quality/data/research-notes/`. Each entry should note:
+- Date researched
+- What was checked
+- Key findings
+- Whether any changes are recommended
+- Decision: adopt / defer / skip (with rationale)
+
+---
+
+## Problem Statement
+
+ClawBot and Claude Code both have persistent memory systems (SQLite → Azure AI Search) that extract facts from conversation sessions. But there's no quality feedback loop:
+
+- **Tags are vague.** GPT-5.2 extracts facts and assigns tags, but only sees tag names — not definitions. Result: overuse of `type:context` and `type:insight` instead of precise tags like `type:validation` or `type:pivot`.
+- **No recency signal.** A memory from February ranks the same as one from yesterday. For a fast-moving startup, yesterday's architecture decision matters more.
+- **No lifecycle management.** Memories accumulate forever. Stale, unused facts pollute recall results.
+- **No quality measurement.** No scoring, no benchmarks, no way to know if extractions are getting better or worse.
+- **No user control.** User can't pin important memories or mark facts as permanent.
+
+---
+
+## What We're Building
+
+A **dual-target memory quality system** that works on both ClawBot (VM) and Claude Code (Mac). Same codebase, different configs. Three phases of work:
+
+### Phase 1: Analysis & Foundation (Plan A)
+
+**Plan:** `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md`
+
+Verify the problem with real data, establish baselines, implement fixes, validate improvement.
+
+| Step | What | Key Decision |
+|------|------|-------------|
+| 1 | Boot VM + Tailscale | Infra prereq |
+| 2 | Export 3 sessions + all memories + SOUL.md + USER.md locally | Raw data for offline analysis |
+| 3 | Tag distribution analysis | Measure anchor coverage, diversity, drift |
+| 4 | **Claude-as-judge** — score ALL ~100 memories | 6-dimension rubric, independent judge (Claude, not GPT-5.2). Includes missed-fact analysis from session transcripts |
+| 5 | Re-extract 3 sessions with current prompt (baseline) | Capture what today's prompt produces |
+| 5a | **Tag normalization** — standardize existing tag formats | Fix casing, prefixes, duplicates |
+| 5b | **Recency boost + lifecycle** — Azure scoring profile (80-day, 2.0x), access_count tracking, permanent:true tag, 90-day stale auto-delete | Newer memories rank higher. Unused memories get cleaned. Critical facts protected. |
+| 5c | **Pin system** — `pin:critical/important/reference` | User says "pin" → prompted for level. Pinned memories never decay. |
+| 6 | Baseline comparison report | Go/no-go gate for Phase 0 |
+| 7 | Implement Phase 0 (tag definition injection) | Enrich extraction prompt with definitions + usage counts |
+| 8 | A/B test — same 3 sessions, new prompt | Measure improvement |
+| 9 | Re-tag existing memories | Apply improved tags to all ~100 memories |
+
+### Phase 2: Package into Skill (Plan B)
+
+**Plan:** `plans/oclaw-memory-improvement-skill-plan.md`
+
+Bundle all validated components into a reusable OpenClaw skill with CLI interface.
+
+| Capability | CLI command | Cadence |
+|-----------|------------|---------|
+| Health check | `cli.py health` | Monthly (cron) or on-demand |
+| Tag analysis + normalization | `cli.py tags` | Monthly |
+| Pin/unpin | `cli.py pin MEM_ID level` | On-demand (user-triggered) |
+| Lifecycle (stale cleanup) | `cli.py lifecycle --cleanup` | Monthly (cron) |
+| Permanent review | `cli.py lifecycle --permanent` | Quarterly (user-initiated) |
+| Quality scoring | `cli.py score --all` | Monthly |
+| Baseline snapshot | `cli.py baseline` | Before/after changes |
+| Monthly report | `cli.py report` | 1st of month (cron) |
+| Cross-target compare | `cli.py compare` | On-demand |
+
+### Phase 3: Claude Code Target (Deferred)
+
+Adapt the skill for Claude Code's dev-tool context. Different tag emphasis, different rubric weights, different staleness signals. Start after ClawBot is fully validated.
+
+Key tuning differences:
+- Dev-focused tags: `type:fix`, `type:architecture`, `type:correction`
+- "Code relevance" dimension replaces "ClawBot utility"
+- Possibly shorter freshness window (code context changes faster)
+- Session JSONL files accessible at `~/.claude/projects/<path>/<uuid>.jsonl`
+
+---
+
+## Key Architecture Decisions
+
+Decided during Mar 27, 2026 planning session:
+
+### Tags
+
+| Decision | Rationale |
+|----------|-----------|
+| Inject tag definitions + usage counts into extraction prompt (Phase 0) | LLM only sees names today → vague tags. Definitions + counts = smarter choices. |
+| `pin:` dimension with 3 levels (critical/important/reference) | User needs explicit control. "Pin that" → prompted for level. Never decay. |
+| `permanent:true` tag for infrastructure facts | Some facts never change. Quarterly manual review to confirm. |
+| No date tags on every memory | `created_at`/`updated_at` timestamps already exist. Tags are for semantics, timestamps are for temporal ordering. |
+| Normalize existing tags before adding new features | Fix inconsistencies first so analysis is clean. |
+
+### Scoring & Recall
+
+| Decision | Rationale |
+|----------|-----------|
+| Azure scoring profile: 80-day freshness, 2.0x boost | Startup context shifts fast. Recent memories should rank higher. 80 days keeps last month's architecture decisions visible. |
+| Content 1.5x weight, tags 1.2x weight | Content matters most, tags are secondary signal. |
+| Importance field 2.0x boost | High-importance always ranks well regardless of age. Pin overrides importance (critical=10, important=9, reference=8). |
+
+### Lifecycle
+
+| Decision | Rationale |
+|----------|-----------|
+| Increment `access_count` on every recall | Free usage data. Currently in schema but never used. |
+| 90 days + 0 accesses → soft delete | Strong signal memory isn't useful. Soft delete = recoverable. |
+| `permanent:true` and `pin:*` exempt from decay | User-protected facts should never auto-delete. |
+| Quarterly manual review of permanent memories | Prevents "permanent" from meaning "forever unquestioned." |
+
+### Quality Evaluation
+
+| Decision | Rationale |
+|----------|-----------|
+| Claude Sonnet as judge (not GPT-5.2) | Independent model family = no self-grading bias. GPT-5.2 extracted the facts; Claude judges them. |
+| 6-dimension rubric (tag accuracy, specificity, anchors, fact accuracy, atomicity, ClawBot utility) | Comprehensive but weighted. ClawBot utility uses SOUL.md + USER.md for persona-grounded scoring. |
+| Score ALL ~100 memories, not a sample | Claude-as-judge has no per-call cost. Full coverage eliminates sampling error. |
+| Missed-fact analysis from session transcripts | Catches extraction gaps, not just tag quality. |
+| Existing `_score_extraction_quality()` analyzed separately | It's GPT-5.2 self-scoring. Understand it, but don't use as primary judge. |
+
+### Dual-Target
+
+| Decision | Rationale |
+|----------|-----------|
+| Same codebase, `--target` flag | Both systems use identical SQLite + Azure AI Search architecture. Config differs, code doesn't. |
+| ClawBot first, Claude Code second | ClawBot has the richer memory set and more complex needs. Prove the system there first. |
+| Claude Code gets tuned rubric (5 dimensions, no ClawBot utility) | No SOUL.md/USER.md on Mac. Replace with "code relevance" dimension. |
+| Single source of truth deploys to both targets | No code forks. Changes go to source, then deploy via scp/cp. |
+
+---
+
+## Success Criteria
+
+From `plans/mem-optimize-v5.md`, refined:
+
+| Metric | Target | When |
+|--------|--------|------|
+| Tag anchor coverage (both `type:` + `domain:`) | >= 80% | After Phase 1 Step 5a |
+| Tag diversity (no single tag > 25%) | Pass | After Phase 1 Step 5a |
+| Claude-as-judge weighted average | >= 3.5/5 | After Phase 1 Step 9 |
+| A/B improvement (Phase 0 prompt vs baseline) | >= 15% tag quality improvement | After Phase 1 Step 8 |
+| Recall Precision@5 | >= 0.6 | After Phase 2 deployed |
+| Recall MRR | >= 0.7 | After Phase 2 deployed |
+| Stale memories (>90 days, 0 access) | < 10% of active | After Phase 2 monthly cron running |
+| Semantic duplicates | < 5% of active | After quarterly dedup sweep |
+
+---
+
+## Plan Files
+
+| File | What | Status |
+|------|------|--------|
+| `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md` | Phase 1: Analysis, baselines, fixes, validation (Steps 1-9) | Not started |
+| `plans/oclaw-memory-improvement-skill-plan.md` | Phase 2: Package into dual-target skill + Phase 3: Claude Code tuning | Planned |
+| `plans/mem-optimize-v5.md` | Master optimization plan (partially superseded by above) | Draft |
+| `plans/phase00-tag-definition-injection.md` | Phase 0 spec (5 edits to smart_extractor.py) | Ready to implement |
+| `plans/mem-best-practice.md` | Research: extraction best practices, session formats, commercial platforms | Complete |
+| `plans/mem-optimize-v4.md` | Previous version (superseded by v5) | Archived |
+
+---
+
+## Cost
+
+| Component | Cost | Cadence |
+|-----------|------|---------|
+| Monthly quality scoring (GPT-4.1-mini, 30 memories) | ~$0.01 | Monthly |
+| Monthly tag analysis (pure Python) | $0.00 | Monthly |
+| Monthly recall benchmark (Azure Search queries) | $0.00 | Monthly |
+| Quarterly A/B comparison (GPT-5.2, 8 sessions x2) | ~$1.40 | Quarterly |
+| Quarterly semantic dedup sweep (GPT-4.1-mini) | ~$0.05 | Quarterly |
+| Quarterly permanent review (manual) | $0.00 | Quarterly |
+| Azure AI Search (basic tier, flat-rate) | ~$74/mo | Ongoing (already running) |
+| **Total incremental cost** | **~$6/year** | |
+
+---
+
+## Execution Order
+
+```
+DONE:   PRD (scope + decisions captured)                              ✅ 2026-03-27
+        ↓
+DONE:   RESEARCH — Best practices (extraction, tagging, scoring)      ✅ 2026-03-28
+        6 research agents: memory tags, extraction prompts, Azure scoring,
+        LLM-as-judge rubrics, memory eval benchmarks, pairwise comparison
+        ↓
+DONE:   Phase 1 — Analysis & Foundation                               ✅ 2026-03-27/28
+        Export data → Tag analysis → Claude-as-judge audit (2.52/5.0)
+        → Dedup (112→68) → Normalize → Pin/lifecycle/health monitor
+        ↓
+DONE:   Phase 1b — Extraction Prompt Tuning                           ✅ 2026-03-28
+        5-layer A/B test → L1+L2 won (+12.8%) → Re-tag 68 memories
+        → Azure scoring profile (80-day quadratic freshness + importance)
+        → Env var DB path fix (no more post-deploy sed)
+        ↓
+NEXT:   Phase 2 — Package into Skill (ClawBot target)
+        Build skill dir → CLI → Cron → Deploy to VM → Verify
+        ↓
+LATER:  Phase 3 — Claude Code Target
+        RESEARCH AGAIN (Claude Code context is different) → Schema check → Config tuning → Deploy to Mac
+        ↓
+FUTURE: ProMem iterative extraction (73.8% recall vs 41% one-shot)
+        ↓
+ONGOING: Each cycle starts with RESEARCH before any changes
+         Monthly report → Research what's new → Adjust approach → Execute
+```
+
+---
+
+## Completed Work Summary (2026-03-27/28)
+
+| Deliverable | Status |
+|-------------|--------|
+| PRD + 3 plans + session summary | Complete |
+| Phase I analysis (tag distribution + Claude-as-judge) | Complete — 2.52/5.0 baseline |
+| Phase II cleanup (dedup 112→68, normalize, pin, lifecycle, health monitor) | Complete |
+| Phase III A/B test (5 layers, L1+L2 won at 0.968) | Complete |
+| Re-tag all 68 memories with winning prompt | Complete |
+| Azure scoring profile (80-day freshness, importance boost) | Complete — live |
+| Health monitor (`mem.py status`) + daily cron | Complete — live |
+| Memory test commands doc | Complete |
+| Env var DB path fix (no more sed after deploy) | Complete |
+| pin:/permanent: excluded from extraction prompt | Complete |
+| MEMORY-LOCATIONS.md (ClawBot vs Claude Code guide) | Complete |
+| Work-brain project entry updated | Complete |
+
+**Memory health: 6/10 ATTENTION** (4 metrics self-healing over time)
+
+---
+
+## Open Questions
+
+1. **Should the monthly health report auto-trigger a re-tagging pass if tag quality drops below threshold?** (Fully autonomous loop vs human-in-the-loop)
+2. **Should `access_count` feed back into the scoring profile?** (Frequently-recalled memories rank even higher)
+3. **Should we build a web dashboard for memory health?** (Probably overkill — markdown reports are fine for now)
+4. **Claude Code session JSONL files ARE accessible on Mac** — should we enable missed-fact analysis for Claude Code too? (Noted in Phase B tuning considerations)
+5. **ProMem iterative extraction** — research showed 73.8% recall vs 41% one-shot. Worth the 3-5x cost increase? (Design decision DD-003 flagged)

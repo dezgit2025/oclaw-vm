@@ -34,3 +34,4 @@ repos/
 # Ignore temporary files
 *.tmp
 *.bak
+plans/tag-analysis-mar27/
