@@ -159,7 +159,18 @@
       "Bash(~/Projects/AzureOps/scripts/monthly-cost-report.sh 2026-02 2>&1)",
       "Bash(./manage-oclaw/create-manage-tunnel-oclaw.py status)",
       "Bash(./manage-oclaw/create-manage-tunnel-oclaw.py start)",
-      "Read(//home/azureuser/.claude/channels/telegram/inbox/**)"
+      "Read(//home/azureuser/.claude/channels/telegram/inbox/**)",
+      "Bash(uv run:*)",
+      "Bash(for layer:*)",
+      "Bash(do echo:*)",
+      "Bash(done)",
+      "Bash(SUB_ID=\"c34d54e5-7eb9-4ba8-8424-c6ab8635ccdc\")",
+      "Bash(SUB_ID=c34d54e5-7eb9-4ba8-8424-c6ab8635ccdc)",
+      "Bash(az rest --method post --url https://management.azure.com/subscriptions/$SUB_ID/providers/Microsoft.CostManagement/query?api-version=2023-11-01 --body '{:*)",
+      "Bash(for plan:*)",
+      "Bash(do)",
+      "Bash(./create-manage-tunnel-oclaw.py status:*)",
+      "Bash(./create-manage-tunnel-oclaw.py start:*)"
     ],
     "additionalDirectories": [
       "/Users/dez/.ssh",

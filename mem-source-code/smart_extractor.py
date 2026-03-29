@@ -2147,6 +2147,45 @@ def cmd_recall(topic: str, project=None, max_memories=10):
     return output
 
 
+_LLM_EXPANSION_CACHE: dict = {}
+
+
+def _llm_expand_query(query: str) -> list:
+    """Call GPT-4.1-mini to generate related search terms. 1s timeout."""
+    cache_key = query.lower().strip()
+    if cache_key in _LLM_EXPANSION_CACHE:
+        return _LLM_EXPANSION_CACHE[cache_key]
+    try:
+        from openai import OpenAI
+        client = OpenAI(
+            base_url="http://127.0.0.1:18791/v1",
+            api_key="LOCAL",
+            timeout=1.0,
+        )
+        resp = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{
+                "role": "user",
+                "content": (
+                    "Given this search query, generate 5 related search terms "
+                    "that would find relevant memories in a personal knowledge base. "
+                    "Return only the terms, one per line.\n\n"
+                    f"Query: {query}"
+                ),
+            }],
+            temperature=0.0,
+        )
+        terms = [
+            line.strip() for line in
+            resp.choices[0].message.content.strip().split("\n")
+            if line.strip()
+        ]
+        _LLM_EXPANSION_CACHE[cache_key] = terms
+        return terms
+    except Exception:
+        return []
+
+
 def _expand_topic_queries(topic: str) -> list:
     """
     Expand a topic into multiple search queries to get broader recall.
@@ -2154,8 +2193,9 @@ def _expand_topic_queries(topic: str) -> list:
     "pricing" → ["pricing", "monetization", "subscription", "revenue",
                   "freemium", "payment"]
 
-    Uses a static domain map first (free, instant), then falls back to
-    dynamic word-based expansion for topics outside the static map.
+    Uses a static domain map first (free, instant), then LLM expansion
+    via GPT-4.1-mini (cached, 1s timeout), then falls back to word-based
+    expansion as last resort.
     """
     # Topic expansion map — domain-specific associations
     expansions = {
@@ -2206,14 +2246,17 @@ def _expand_topic_queries(topic: str) -> list:
             queries.extend(expansions[word])
             matched_static = True
 
-    # Dynamic fallback: if no static match, expand using word-based strategy
+    # Dynamic fallback: if no static match, try LLM then word-based
     if not matched_static:
-        significant = [w for w in words if w not in STOPWORDS and len(w) > 2]
-        # Add individual significant words as queries
-        queries.extend(significant)
-        # Add bigrams of significant words
-        for i in range(len(significant) - 1):
-            queries.append(f"{significant[i]} {significant[i+1]}")
+        llm_terms = _llm_expand_query(topic)
+        if llm_terms:
+            queries.extend(llm_terms)
+        else:
+            # Word-based fallback (last resort — LLM unavailable or timed out)
+            significant = [w for w in words if w not in STOPWORDS and len(w) > 2]
+            queries.extend(significant)
+            for i in range(len(significant) - 1):
+                queries.append(f"{significant[i]} {significant[i+1]}")
 
     # Deduplicate while preserving order
     seen = set()

@@ -667,6 +667,96 @@ Send a test message through ClawBot and verify `<clawbot_context>` appears with 
 
 ---
 
+## Round 7: LLM Topic Expansion [30m]
+
+**Goal:** Replace the dumb word-based fallback in `_expand_topic_queries()` with GPT-4.1-mini LLM expansion + in-memory cache. Directly improves the #3 ranked improvement (topic expansion) which feeds RRF fusion (#1 ranked). Low effort, high compounding ROI.
+
+**Research:** The word-based fallback generates bigrams which are low-quality expansions. GPT-4.1-mini can generate semantically meaningful related terms for any domain, even ones not in the static map.
+
+### Step 7.1: Implement LLM Expansion + Cache
+
+**File:** `smart_extractor.py` → `_expand_topic_queries()` + new `_llm_expand_query()`
+
+```python
+_LLM_EXPANSION_CACHE: dict[str, list[str]] = {}
+
+def _llm_expand_query(query: str) -> list[str]:
+    """Call GPT-4.1-mini to generate 5 related search terms. 1s timeout."""
+    from openai import OpenAI
+    client = OpenAI(base_url="http://127.0.0.1:18791/v1", api_key="LOCAL")
+    resp = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{
+            "role": "user",
+            "content": f"Given this search query, generate 5 related search terms "
+                       f"that would find relevant memories. Return only the terms, "
+                       f"one per line.\n\nQuery: {query}"
+        }],
+        temperature=0.0,
+        timeout=1.0,
+    )
+    return [line.strip() for line in resp.choices[0].message.content.strip().split("\n") if line.strip()]
+```
+
+**Integration into `_expand_topic_queries()`:**
+```
+1. Try static domain map         → ~0ms (covers ~70% of queries)
+2. Check _LLM_EXPANSION_CACHE   → ~0ms
+3. Call _llm_expand_query()      → ~200-400ms, GPT-4.1-mini
+4. Cache result in dict
+5. Fall back to word-based on any failure (timeout, proxy down, etc.)
+6. Cap at 8 unique queries       → existing dedup + slice
+```
+
+### Step 7.2: Test on VM with Novel Queries
+
+Test 5 novel queries with no static map match:
+- "kubernetes pod scheduling"
+- "terraform state management"
+- "webhook retry logic"
+- "rate limiting strategy"
+- "backup rotation policy"
+
+Verify: LLM returns meaningful terms, cache hits return instantly, timeout falls back to bigrams.
+
+### Step 7.3: Re-run Benchmark + Judge + Compare
+
+```bash
+python3 quality/recall/run_benchmark.py \
+  --benchmark quality/data/recall_benchmark.json \
+  --db ~/.agent-memory/memory.db \
+  --output quality/data/round7-results.json \
+  --mode rrf
+
+python3 quality/recall/judge_recall.py \
+  --input quality/data/round7-results.json \
+  --dimensions relevance,noise \
+  --output quality/data/round7-scores.json
+
+python3 quality/recall/regression_gate.py \
+  --before quality/data/round4-scores.json \
+  --after quality/data/round7-scores.json
+```
+
+### Step 7.4: Deploy to VM + Restart Gateway
+
+```bash
+scp smart_extractor.py oclaw:~/.openclaw/workspace/skills/clawbot-memory/
+ssh oclaw "python3 /home/desazure/.openclaw/workspace/ops/watchdog/restart_gateway.py"
+```
+
+### Round 7 Deliverables
+- [ ] `_llm_expand_query()` function in `smart_extractor.py`
+- [ ] In-memory cache for LLM expansions
+- [ ] Timeout fallback to word-based expansion
+- [ ] `quality/data/round7-scores.json` — judge scores
+- [ ] Before/after comparison documented
+- [ ] Expected: improved recall on novel/cross-domain queries
+
+### Round 7 Cost: ~$0.001 per cache miss (~$0.01/month at current volume)
+
+---
+
 ## Regression Gate (Used After Every Round)
 
 **File:** `quality/recall/regression_gate.py`
@@ -750,8 +840,9 @@ quality/
 | Round 4 (embed/scoring) | 20q x 2 dim | 40 | ~$0.02 |
 | Round 5 (full benchmark) | 80q x 6 dim x 2 models | 960 | ~$2.55 |
 | Round 6 (deploy) | Azure benchmark only | 0 | $0.00 |
-| **Total** | | **1,120** | **~$2.65** |
-| **Ongoing (topic expansion)** | LLM fallback on cache miss | — | **~$0.03/month** |
+| Round 7 (LLM expansion) | 20q x 2 dim + LLM expansion calls | 40 | ~$0.03 |
+| **Total** | | **1,160** | **~$2.68** |
+| **Ongoing (topic expansion)** | LLM fallback on cache miss | — | **~$0.01/month** |
 
 ---
 
@@ -782,6 +873,11 @@ Round 5: Full Benchmark       80q x 6 dim (only if needed or pre-deploy)        
 
 Round 6: Deploy to VM         scp → re-index → restart → smoke test             [30m]
                               Azure benchmark as final validation
+
+Round 7: LLM Expansion        GPT-4.1-mini fallback for novel queries            [30m]
+                              + in-memory cache + timeout fallback
+                              Judge: rule-based, 40 calls
+                              Output: delta vs Round 4
 ```
 
 ---

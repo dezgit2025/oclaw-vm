@@ -401,3 +401,62 @@ Estimated effort: 2-3 hours. Stored in memory as `status:exploring`.
 4. **Normalization is a band-aid** — the real fix is consistent project detection in `detect_project()`
 5. **API 500s are transient** — always check `status.anthropic.com` before blaming hooks
 6. **Word overlap is good enough for prevention** — LLM dedup is better for retroactive cleanup
+
+---
+
+## 9. Memory Recall Optimizer — Learnings (2026-03-29)
+
+### Overview
+
+Built an LLM-as-judge benchmark framework, measured baseline recall quality, and implemented 6 improvements across 7 rounds. Final result: **+13.4% weighted score** (3.88 → 4.40), **+39.3% noise reduction** (3.05 → 4.25).
+
+### Improvement Rankings (by measured impact)
+
+| Rank | Change | Impact | Effort |
+|------|--------|--------|--------|
+| 1 | **RRF Fusion** — Reciprocal Rank Fusion replacing dedup+priority sort | Noise +39%, P@5 +12.5% | ~15 lines |
+| 2 | **Scoring Profile** — freshness (1.5x), importance (2.0x), access_count (1.3x) | Azure retrieval quality boost | ~20 lines |
+| 3 | **Dynamic Topic Expansion** — 23 static domains + GPT-4.1-mini LLM fallback + cache | 100% query domain coverage | ~60 lines total |
+| 4 | **Contextual Metadata Prefix** — `[Project: X | Tags: Y | Date: Z]` before embedding | Better scoped vector similarity | ~15 lines |
+| 5 | **Multi-turn Context** — last 3 messages instead of 1 in hook | Follow-up query accuracy | ~10 lines |
+| 6 | **Trivial Turn Gate** — regex skip for "ok/thanks/hello" under 25 chars | Latency/cost savings | ~5 lines |
+
+### Key Technical Learnings
+
+1. **RRF is the highest-ROI single change for any multi-query retrieval system.** 15 lines of code eliminated 39% of noise by rewarding consensus across sub-queries. Apply this pattern anywhere multiple search results are fused.
+
+2. **Azure scoring profiles must be applied via `init` (create_or_update_index), not `sync`.** The sync command only pushes documents — it doesn't modify the index schema. After `init`, must re-run `sync --full` because `init` deletes and recreates the index.
+
+3. **Azure text_weights are pre-reranking (L1).** They get overridden by semantic reranking (L2). On free-tier semantic (1K queries/month), text_weights still help for non-semantic queries. If upgrading to standard semantic, text_weights become dead code.
+
+4. **The Foundry MI proxy (port 18791) is VM-specific.** Each Azure VM has its own Managed Identity — can't use oclaw's proxy from a different VM. Plan for model access when working across VMs.
+
+5. **LLM topic expansion timing: 0.4-2.6s per novel query.** Cold start (first OpenAI SDK call) is slowest. Subsequent calls ~0.4-0.5s. In-memory cache makes repeated queries instant. Within 4s hook budget but tight — monitor for regressions.
+
+6. **Rule-based judge is sufficient for iteration.** Catches the same patterns as LLM judge for keyword-based recall. Use LLM judge only for final validation or when evaluating semantic quality that keywords can't measure.
+
+7. **The benchmark runner has its own expansion logic** — it doesn't use `smart_extractor.py`. Changes to production expansion only show up in production recall tests, not in benchmark scores. Design consideration for future: refactor to share search logic.
+
+### Index State After Deployment
+
+| Component | Value |
+|-----------|-------|
+| Index name | `clawbot-memory-store` |
+| Active memories | 68 |
+| Scoring profile | `memory-relevance` (default) |
+| text_weights | content:1.5, tags:1.2 |
+| Scoring functions | freshness (1.5x/80d quadratic), importance (2.0x linear), access_count (1.3x logarithmic) |
+| Semantic config | `memory-semantic` on `content` (free tier, 1K queries/month) |
+| Vector search | HNSW, cosine, text-embedding-3-large (3072-dim) |
+
+### Files Modified
+
+| File | Location on VM |
+|------|----------------|
+| `smart_extractor.py` | `~/.openclaw/workspace/skills/clawbot-memory/` |
+| `memory_bridge.py` | `~/.openclaw/workspace/skills/clawbot-memory/` |
+| `handler.js` | `~/.openclaw/hooks/clawbot-memory/` |
+
+### Benchmark Framework
+
+Deployed to `~/.openclaw/workspace/skills/clawbot-memory/quality/` — 5 scripts + 7 round data files. Can re-run benchmarks after future changes to detect regressions.
