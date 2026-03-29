@@ -2153,8 +2153,11 @@ def _expand_topic_queries(topic: str) -> list:
 
     "pricing" → ["pricing", "monetization", "subscription", "revenue",
                   "freemium", "payment"]
+
+    Uses a static domain map first (free, instant), then falls back to
+    dynamic word-based expansion for topics outside the static map.
     """
-    # Topic expansion map — startup-specific associations
+    # Topic expansion map — domain-specific associations
     expansions = {
         "pricing": ["monetization", "subscription", "revenue", "freemium", "payment", "pricing"],
         "monetization": ["pricing", "revenue", "subscription", "freemium", "ads", "monetization"],
@@ -2172,16 +2175,45 @@ def _expand_topic_queries(topic: str) -> list:
         "hiring": ["team", "role", "contractor", "equity", "cofounder", "hiring"],
         "launch": ["release", "app store", "beta", "launch", "go-live"],
         "users": ["user research", "persona", "interview", "survey", "feedback", "users"],
+        # Infrastructure & ops domains (added for ClawBot recall)
+        "tailscale": ["VPN", "wireguard", "exit node", "mesh network", "tailscale"],
+        "gateway": ["openclaw", "claude-opus", "copilot", "LLM", "model config", "gateway"],
+        "oauth": ["reauth", "token refresh", "google auth", "credentials", "oauth"],
+        "memory": ["extraction", "smart_extractor", "session facts", "recall", "memory"],
+        "azure": ["VM", "foundry", "managed identity", "NSG", "cost", "azure"],
+        "weather": ["NWS", "forecast", "snowfall", "storm", "alert", "weather"],
+        "docker": ["container", "compose", "drawio", "foundry", "docker"],
+        "cron": ["watchdog", "scheduled", "timer", "periodic", "cron"],
     }
 
-    # Start with the raw topic words
+    STOPWORDS = {"the", "a", "an", "is", "are", "was", "were", "be", "been",
+                 "being", "have", "has", "had", "do", "does", "did", "will",
+                 "would", "could", "should", "may", "might", "can", "shall",
+                 "to", "of", "in", "for", "on", "with", "at", "by", "from",
+                 "as", "into", "about", "between", "through", "after", "before",
+                 "and", "but", "or", "not", "so", "if", "then", "than", "that",
+                 "this", "what", "which", "who", "whom", "how", "when", "where",
+                 "why", "it", "we", "they", "i", "you", "he", "she", "my", "our"}
+
+    # Start with the raw topic
     words = topic.lower().split()
     queries = [topic]
+    matched_static = False
 
-    # Add expansions for each word
+    # Add expansions for each word from static map
     for word in words:
         if word in expansions:
             queries.extend(expansions[word])
+            matched_static = True
+
+    # Dynamic fallback: if no static match, expand using word-based strategy
+    if not matched_static:
+        significant = [w for w in words if w not in STOPWORDS and len(w) > 2]
+        # Add individual significant words as queries
+        queries.extend(significant)
+        # Add bigrams of significant words
+        for i in range(len(significant) - 1):
+            queries.append(f"{significant[i]} {significant[i+1]}")
 
     # Deduplicate while preserving order
     seen = set()

@@ -264,10 +264,30 @@ def read_deleted_since(since_timestamp: str):
 # Transform local memory → Azure document
 # ---------------------------------------------------------------------------
 
+def prepare_embed_content(mem: dict) -> str:
+    """Prepend metadata context to memory content before embedding.
+
+    Improves vector similarity for project-scoped and tagged queries.
+    The prefix is included in the content field sent to Azure, so the
+    integrated vectorizer embeds it alongside the fact text.
+    """
+    content = mem.get("content", mem.get("fact", ""))
+    prefix_parts = []
+    if mem.get("project") and mem["project"] != "general":
+        prefix_parts.append(f"Project: {mem['project']}")
+    if mem.get("tags"):
+        prefix_parts.append(f"Tags: {mem['tags']}")
+    if mem.get("created_at"):
+        date_str = str(mem["created_at"])[:10]
+        prefix_parts.append(f"Date: {date_str}")
+    prefix = " | ".join(prefix_parts)
+    return f"[{prefix}]\n{content}" if prefix else content
+
+
 def memory_to_azure_doc(mem: dict) -> dict:
     """Convert a local memory row into an Azure AI Search document."""
-    content = mem.get("content", mem.get("fact", ""))
-    
+    content = prepare_embed_content(mem)
+
     return {
         "id": mem["id"],
         "content": content,
@@ -619,6 +639,14 @@ def ensure_memory_index():
                 interpolation="linear",
                 parameters=MagnitudeScoringParameters(
                     boosting_range_start=1, boosting_range_end=10,
+                ),
+            ),
+            MagnitudeScoringFunction(
+                field_name="access_count",
+                boost=1.3,
+                interpolation="logarithmic",
+                parameters=MagnitudeScoringParameters(
+                    boosting_range_start=0, boosting_range_end=20,
                 ),
             ),
         ],
