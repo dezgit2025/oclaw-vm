@@ -158,7 +158,8 @@
       "Bash(cd ~/Projects/AzureOps && git add -A && git status)",
       "Bash(~/Projects/AzureOps/scripts/monthly-cost-report.sh 2026-02 2>&1)",
       "Bash(./manage-oclaw/create-manage-tunnel-oclaw.py status)",
-      "Bash(./manage-oclaw/create-manage-tunnel-oclaw.py start)"
+      "Bash(./manage-oclaw/create-manage-tunnel-oclaw.py start)",
+      "Read(//home/azureuser/.claude/channels/telegram/inbox/**)"
     ],
     "additionalDirectories": [
       "/Users/dez/.ssh",
