@@ -2015,6 +2015,35 @@ def cmd_journal(project=None, output_path=None):
 # PROACTIVE RECALL — Pre-load relevant memories into system prompt
 # ====================================================================
 
+
+def rrf_fuse(query_results: list, k: int = 10) -> list:
+    """Reciprocal Rank Fusion across multiple query result lists.
+
+    Each element of query_results is a list of parsed memory dicts
+    (as returned by _parse_mem_line) from a single sub-query.
+    Returns a single fused list sorted by RRF score descending,
+    with tag priority as tiebreaker.
+    """
+    scores = {}       # memory_id → cumulative RRF score
+    memory_map = {}   # memory_id → memory dict
+
+    for results in query_results:
+        for rank, mem in enumerate(results):
+            mid = mem["id"]
+            memory_map[mid] = mem
+            scores[mid] = scores.get(mid, 0) + 1.0 / (k + rank + 1)
+
+    # Sort by RRF score descending, then by tag priority as tiebreaker
+    ranked = sorted(
+        scores.keys(),
+        key=lambda mid: (
+            -scores[mid],
+            -memory_map[mid].get("priority", 0),
+        ),
+    )
+    return [memory_map[mid] for mid in ranked]
+
+
 def cmd_recall(topic: str, project=None, max_memories=10):
     """
     Given a conversation topic, search memory and generate a context
@@ -2027,9 +2056,8 @@ def cmd_recall(topic: str, project=None, max_memories=10):
     # Expand topic into multiple search dimensions
     search_queries = _expand_topic_queries(topic)
 
-    # Gather memories from all queries, deduplicate
-    seen = set()
-    memories = []
+    # Gather per-query results as separate lists for RRF fusion
+    all_query_results = []
 
     for q in search_queries:
         cmd = ["python3", MEM_CLI, "search", q, "-k", "5"]
@@ -2038,12 +2066,12 @@ def cmd_recall(topic: str, project=None, max_memories=10):
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
             if r.returncode == 0 and r.stdout.strip():
+                query_memories = []
                 for line in r.stdout.strip().split("\n"):
                     line = line.strip()
-                    if line and line not in seen:
-                        seen.add(line)
+                    if line:
                         parsed = _parse_mem_line(line)
-                        # Prioritize decisions, pivots, open questions
+                        # Tag priority for RRF tiebreaker
                         priority = 0
                         if "type:decision" in parsed["tags"]: priority = 3
                         if "type:pivot" in parsed["tags"]: priority = 4
@@ -2051,13 +2079,14 @@ def cmd_recall(topic: str, project=None, max_memories=10):
                         if "type:metric" in parsed["tags"]: priority = 2
                         if "type:competitive" in parsed["tags"]: priority = 2
                         parsed["priority"] = priority
-                        memories.append(parsed)
+                        query_memories.append(parsed)
+                if query_memories:
+                    all_query_results.append(query_memories)
         except Exception:
             pass
 
-    # Sort by priority (highest first), take top N
-    memories.sort(key=lambda x: -x.get("priority", 0))
-    memories = memories[:max_memories]
+    # Fuse results with Reciprocal Rank Fusion, take top N
+    memories = rrf_fuse(all_query_results, k=10)[:max_memories]
 
     # Increment access_count for recalled memories
     recalled_ids = [m["id"] for m in memories if m.get("id")]

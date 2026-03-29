@@ -1,0 +1,614 @@
+[
+  {
+    "id": "mem_2b4cdefa9f31966c",
+    "content": "Test memory entry",
+    "tags": "type:context, skill:memory, domain:ai, confidence:low, source:user, status:active",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:45:27.301441+00:00"
+  },
+  {
+    "id": "mem_09fb2a290522dd43",
+    "content": "Team preference for Tailscale exit-node watchdog: run a deterministic health check and emit alerts only when the exit-node state changes (down\u2192up or up\u2192down), to avoid repeated notifications.",
+    "tags": "type:preference, domain:ops, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:46:12.306850+00:00"
+  },
+  {
+    "id": "mem_7e1362cfc9748deb",
+    "content": "The \"chromeos-nissa\" Tailscale exit-node watchdog cron job is configured to alert when the node goes down and when it recovers.",
+    "tags": "type:fact, domain:ops, domain:infrastructure, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:48:01.222037+00:00"
+  },
+  {
+    "id": "mem_15e404ef698a8c78",
+    "content": "Team repeatedly executed a Python script from /home/desazure/.openclaw/workspa (likely a workspace automation/runner) over an extended period on 2026-02-23.",
+    "tags": "type:fact, domain:ops, domain:infrastructure, decided:2026-02-23, confidence:high, source:analytics, status:active",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:48:49.941363+00:00"
+  },
+  {
+    "id": "mem_07675599e4aeb637",
+    "content": "Local environment appears to include a user/home directory path /home/desazure/.openclaw/, suggesting an OpenClaw-related local toolchain or workspace structure is in use.",
+    "tags": "type:context, domain:infrastructure, skill:general, confidence:medium, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:48:50.037966+00:00"
+  },
+  {
+    "id": "mem_649474e434fa7429",
+    "content": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed).",
+    "tags": "type:decision, domain:ops, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:45.853045+00:00"
+  },
+  {
+    "id": "mem_d4f08961fb815285",
+    "content": "Weather alerting system includes a storm-mode cron job that runs every 3 hours until an acknowledgement is received (\"q3h until ack\").",
+    "tags": "type:architecture, domain:ops, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:45.963977+00:00"
+  },
+  {
+    "id": "mem_6e60619eab12185a",
+    "content": "ClickUp was used/considered for operational task management via the ClickUp API, including updating tasks and exploring creating list structures within a space.",
+    "tags": "type:research, type:tech_stack, domain:ops, domain:backend, status:exploring, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.116202+00:00"
+  },
+  {
+    "id": "mem_5b42b1c297de1d69",
+    "content": "When the browser tool was unavailable, the team planned to fetch Reddit content via Reddit\u2019s JSON endpoints (e.g., for r/ClaudeAI top posts) as an alternative ingestion method.",
+    "tags": "type:pattern, domain:data, status:exploring, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.215208+00:00"
+  },
+  {
+    "id": "mem_29db8f9c78de4168",
+    "content": "For weather forecasting, the team planned to use the NWS forecastGridData endpoint specifically to retrieve snowfallAmount for more accurate snowfall forecasts.",
+    "tags": "type:decision, domain:backend, domain:data, type:tech_stack, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.313248+00:00"
+  },
+  {
+    "id": "mem_2d2a5de21462859f",
+    "content": "An error pattern occurred during execution involving Python subprocess.check_output returning a non-zero exit (code 1), indicating a recurring need to inspect error logs around job runs.",
+    "tags": "type:error_pattern, domain:ops, severity:medium, status:active, skill:general, confidence:high, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.418670+00:00"
+  },
+  {
+    "id": "mem_09718a6c306b4aaa",
+    "content": "Ops runs a weekly cron job named \u201cSecurity Scan Tier 3 \u2014 Weekly Hardening Audit (Sun 7pm ET)\u201d.",
+    "tags": "type:fact, domain:ops, domain:infrastructure, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.525020+00:00"
+  },
+  {
+    "id": "mem_58bc6df4f6b5fb46",
+    "content": "Ops has a recurring cron job \u201cNYC major weather reminder (until ack)\u201d that runs until acknowledged.",
+    "tags": "type:fact, domain:ops, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.631035+00:00"
+  },
+  {
+    "id": "mem_72ea3e4aed167b36",
+    "content": "Team standardized NYC major-weather alert sourcing on the official weather.gov (NWS) API, referencing NWS zone NYZ072 for NYC/Manhattan-area alerts.",
+    "tags": "type:decision, domain:backend, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.784027+00:00"
+  },
+  {
+    "id": "mem_9350a34cc4f76b22",
+    "content": "When a major NWS alert is active, the system is configured to re-check weather.gov for updates to avoid stale timing/impact details.",
+    "tags": "type:pattern, domain:ops, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.889567+00:00"
+  },
+  {
+    "id": "mem_ea9b978a17c28c53",
+    "content": "A daily weather.gov check skill was created/configured to run once per day.",
+    "tags": "type:fact, domain:ops, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:46.996996+00:00"
+  },
+  {
+    "id": "mem_cd10e3f6e7368171",
+    "content": "The major storm reminder message was updated to include a preparation checklist.",
+    "tags": "type:fact, domain:product, skill:general, status:active, source:user, severity:low, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.098581+00:00"
+  },
+  {
+    "id": "mem_c5607fc7d8858ae9",
+    "content": "The system is tracking an active NWS Blizzard Warning for NYC zone NYZ072, and the reminder copy indicated it was in effect until 6:00 PM Monday ET.",
+    "tags": "type:fact, domain:ops, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.197529+00:00"
+  },
+  {
+    "id": "mem_98a2804f94bae7fa",
+    "content": "Weather updates were also pulled for Westchester near White Plains using NWS gridpoint OKX 39,51, including a Scarsdale point forecast for snowfall estimates.",
+    "tags": "type:fact, domain:data, skill:general, confidence:high, source:user, status:active",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.295113+00:00"
+  },
+  {
+    "id": "mem_9b95838b03e8219f",
+    "content": "A scheduled weather-alert run intermittently failed to deliver because it attempted to send a message \u201cwithout a target\u201d; storm-mode updates continued to deliver despite the glitch.",
+    "tags": "type:error_pattern, domain:ops, severity:medium, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.393619+00:00"
+  },
+  {
+    "id": "mem_4d29614388fcfbee",
+    "content": "Team\u2019s VM access posture: Tailscale is considered sufficient to replace Azure Bastion for SSH/RDP-style access, reducing complexity/cost, assuming Tailscale remains reliable.",
+    "tags": "type:decision, domain:infrastructure, skill:general, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.499958+00:00"
+  },
+  {
+    "id": "mem_78a5ca7deb8bb597",
+    "content": "Team is implementing \u201ctool confirmation\u201d gates for exec operations scoped to critical file access, with exceptions intended not to break existing skills, to reduce prompt-injection\u2192tool\u2192secret-exfil risk chains.",
+    "tags": "type:decision, domain:ai, domain:product, domain:data, type:architecture, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.603471+00:00"
+  },
+  {
+    "id": "mem_92bce58128f9a275",
+    "content": "The project uses a Google Drive upload workflow named \u201cgdrive-openclawshared\u201d that uploads into a shared Drive folder called \u201cOpenClawShared\u201d; next hardening step identified is confirmation gating plus an allowlist.",
+    "tags": "type:architecture, domain:infrastructure, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.705014+00:00"
+  },
+  {
+    "id": "mem_0f431226856dde0e",
+    "content": "ClickUp alerting approach: use ClickUp for task planning, but rely on OpenClaw cron-based reminders/alerts for higher reliability (\"don\u2019t miss it\" nagging).",
+    "tags": "type:pattern, type:tech_stack, domain:ops, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.811027+00:00"
+  },
+  {
+    "id": "mem_7e6b0291a0c89330",
+    "content": "ClickUp organizational structure decision: keep list count small (2\u20133 lists) and avoid tag bloat; create separate \u201cBills\u201d and \u201cHabits\u201d lists rather than many lists/tags.",
+    "tags": "type:decision, type:pattern, domain:ops, skill:general, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:47.910017+00:00"
+  },
+  {
+    "id": "mem_ac37278de31eac38",
+    "content": "ClickUp preference: the \u201cBills\u201d list priority defaults to \u201cUrgent\u201d.",
+    "tags": "type:preference, domain:ops, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.023097+00:00"
+  },
+  {
+    "id": "mem_f6dd047395841cdd",
+    "content": "ClickUp alerts were updated to display times in 12-hour AM/PM format.",
+    "tags": "type:fact, domain:product, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.126667+00:00"
+  },
+  {
+    "id": "mem_f2ed491b50d8c4b3",
+    "content": "A local git \u201cbackup snapshot\u201d commit was created containing durable ops changes (heartbeat prompt tweak, ClickUp alerting changes and docs, ops scripts/docs, new skills, updated .gitignore) while excluding logs/exports/nutrition/__pycache__/daily memory notes.",
+    "tags": "type:fact, domain:ops, domain:infrastructure, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.230319+00:00"
+  },
+  {
+    "id": "mem_8144ef9e4443adeb",
+    "content": "Personal finance task surfaced via ClickUp: \u201cIdentify $500 hospital bill + confirm due date\u201d was flagged as urgent and due the next day at 2pm.",
+    "tags": "type:fact, domain:monetization, skill:general, severity:low, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.327159+00:00"
+  },
+  {
+    "id": "mem_92009875c09b11a2",
+    "content": "Repository: pushed a backup snapshot to origin `main` as commit `8375627`.",
+    "tags": "type:fact, domain:infrastructure, skill:general, source:user, confidence:high, status:active",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.425231+00:00"
+  },
+  {
+    "id": "mem_9c574619e9c016d3",
+    "content": "Team architectural guidance: vector DB should be integrated as a read-only retrieval layer fed by existing rotate/archive\u2192parse JSONL\u2192chunk/embed/upsert workflows, not written by live chat, to avoid privacy/entropy issues.",
+    "tags": "type:architecture, domain:ai, domain:data, domain:infrastructure, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.525972+00:00"
+  },
+  {
+    "id": "mem_cc53868b4b16f56a",
+    "content": "Ops: implemented an NYC major weather alerts skill (`skills/weather-storm-alerts-nyc`) with a script `scripts/check_nws_alerts_nyc.py`, plus documentation `ops/docs/weather-storm-alerts-nyc.md`.",
+    "tags": "type:fact, domain:ops, skill:general, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.628596+00:00"
+  },
+  {
+    "id": "mem_4f39e5aea5d1f97b",
+    "content": "Ops: scheduled multiple cron jobs for NYC weather monitoring, including major weather alerts (3x/day), a reminder job, and a storm-mode update job.",
+    "tags": "type:fact, type:context, domain:ops, domain:infrastructure, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.738616+00:00"
+  },
+  {
+    "id": "mem_2bd6fc2ffb77be71",
+    "content": "Team learned/recorded an error pattern: `functions.edit` requires `oldText` to match the file byte-for-byte (whitespace/newlines included) or edits will fail; for non-trivial changes, creating a new file is often cleaner.",
+    "tags": "type:error_pattern, type:pattern, domain:ai, skill:memory, severity:medium, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.838283+00:00"
+  },
+  {
+    "id": "mem_e1a03dc8af72bbf8",
+    "content": "Coding preference: versioned `_v2/_v3` files are acceptable for simple one-off task scripts (e.g., cron/digest jobs), but core code should use in-place edits or proper refactors.",
+    "tags": "type:preference, domain:infrastructure, skill:general, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:48.935847+00:00"
+  },
+  {
+    "id": "mem_4f2ac48b54a401d8",
+    "content": "Product/ops: built and scheduled a daily 'high-signal AI digest' pipeline using sources from Reddit via public JSON endpoints with a filter/scoring step, then summarize top N items.",
+    "tags": "type:architecture, domain:ai, domain:ops, domain:backend, domain:data, source:user, status:active, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.033237+00:00"
+  },
+  {
+    "id": "mem_09f89f46935600c7",
+    "content": "Daily digest watchlist includes subreddits `r/ClaudeCode`, `r/ClaudeAI`, `r/opencodeCLI`, and `r/openclaw`.",
+    "tags": "type:fact, domain:growth, skill:memory, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.160070+00:00"
+  },
+  {
+    "id": "mem_665f6f3658d8ea22",
+    "content": "Daily digest sources expanded beyond Reddit to RSS/Atom feeds using the same pipeline mechanics (fetch\u2192score\u2192keep top N\u2192summarize).",
+    "tags": "type:architecture, domain:product, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.270116+00:00"
+  },
+  {
+    "id": "mem_239ebf4e2776db66",
+    "content": "Team added Anthropic Engineering posts as a recommended/source category for the daily digest (noted as strong for context engineering, eval harnesses, MCP/tooling, and agent security) and documented it in `WORKFLOW_AUTO.md`.",
+    "tags": "type:decision, domain:ops, skill:weekly-review, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.378850+00:00"
+  },
+  {
+    "id": "mem_76e97f2f96ed52c3",
+    "content": "Security hardening: gateway bind was locked down from LAN exposure to `loopback`, and Tailscale-related configuration was applied per OpenClaw gateway tailscale docs.",
+    "tags": "type:architecture, domain:infrastructure, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.487859+00:00"
+  },
+  {
+    "id": "mem_ce1c62c8ad20d4c6",
+    "content": "Security documentation: created/updated `ops/docs/exfill-lockdown.md` and added `ops/docs/internal/sensitive_paths.md` to track exfiltration lockdown practices and sensitive filesystem locations.",
+    "tags": "type:fact, domain:infrastructure, domain:ops, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.601976+00:00"
+  },
+  {
+    "id": "mem_d745a92d29b8edca",
+    "content": "Ops: ClickUp due alerts system was modified\u2014cron schedule updated, alert modes supported via `CLICKUP_ALERT_MODE` (e.g., `daily` and `frequent`), and the implementation/docs were updated (`scripts/clickup_due_alerts.py`, `ops/docs/clickup-alerts.md`).",
+    "tags": "type:fact, type:pattern, domain:ops, domain:infrastructure, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.701218+00:00"
+  },
+  {
+    "id": "mem_89a6bec2e8bec893",
+    "content": "Docs/indexing: generated `ops/docs/Tag-index.md` (tag/index documentation artifact).",
+    "tags": "type:fact, domain:infrastructure, skill:general, source:user, confidence:high, status:active",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.815752+00:00"
+  },
+  {
+    "id": "mem_9da8254ec4aec597",
+    "content": "Team added an internal doc listing AI-related subreddits for ongoing monitoring (ops/docs/ai-subreddits.md).",
+    "tags": "type:fact, domain:ops, domain:ai, skill:general, status:active, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:49.915174+00:00"
+  },
+  {
+    "id": "mem_cd8a9120049f5f52",
+    "content": "Team established a 'high-signal AI digest' pipeline that pulls from RSS feeds (LangChain blog, LlamaIndex blog, vLLM blog) using a repo config file (ops/config/high_signal_digest_sources.json).",
+    "tags": "type:pattern, type:architecture, type:fact, domain:ops, domain:infrastructure, domain:ai, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:50.016860+00:00"
+  },
+  {
+    "id": "mem_5c5790adbe7b3830",
+    "content": "Team implemented a daily digest script (ops/scripts/high_signal_digest.py) and iterated on it with a v2 variant (ops/scripts/high_signal_digest_v2.py).",
+    "tags": "type:fact, domain:ops, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:50.115896+00:00"
+  },
+  {
+    "id": "mem_d83128ebb7c6076f",
+    "content": "Team scheduled the high-signal AI digest as a daily cron job and validated it by force-running the job after updating it.",
+    "tags": "type:fact, type:validation, domain:ops, domain:infrastructure, confidence:high, status:active, source:user",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:50.221711+00:00"
+  },
+  {
+    "id": "mem_8511392c0a924e70",
+    "content": "Team attempted to add Anthropic as a digest source but noted that Anthropic pages used for news/engineering were fetched directly (not a discovered RSS feed), implying RSS availability was uncertain.",
+    "tags": "type:research, type:open_question, domain:product, status:exploring, source:user, confidence:high",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:50.327311+00:00"
+  },
+  {
+    "id": "mem_766f826f37740cea",
+    "content": "Team updated WORKFLOW_AUTO.md in the workspace, likely to reflect the new automated digest workflow.",
+    "tags": "type:fact, type:context, type:pattern, domain:ops, skill:general, confidence:medium, source:user, status:active",
+    "project": "general",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-23T06:49:50.427278+00:00"
+  },
+  {
+    "id": "mem_f4988a465b60156f",
+    "content": "TEST: ClawBot can extract facts from session JSONL using smart_extractor.py sweep command",
+    "tags": "type:validation, domain:ai, skill:memory, status:active, confidence:high, source:user",
+    "project": "openclaw_vm",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-25T17:25:26.634617+00:00"
+  },
+  {
+    "id": "mem_d8597dba29c2cade",
+    "content": "We have a long-term memory system skill 'clawbot-memory' backed by local SQLite + Azure AI Search. Use its venv and the CLI: skills/clawbot-memory/cli/mem.py add/search; use memory_bridge.py sync when user says 'add to AI search'. Operator guide at skills/clawbot-memory/docs/OPERATOR_GUIDE.md. Never store secrets.",
+    "tags": "type:pattern, type:architecture, type:tech_stack, domain:ai, domain:data, domain:infrastructure, domain:ops, skill:memory, source:user, status:active, confidence:high",
+    "project": "openclaw",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-25T17:41:59.964148+00:00"
+  },
+  {
+    "id": "mem_44ffa9ccc5c67131",
+    "content": "Directive (folder_organization): Always move newly created or discovered docs/scripts into the correct OpenClaw workspace subfolder per GLOBAL_FOLDER_STRUCTURE.md (no orphaned files). Log each move in memory/entropy-fixes.md. Treat this as a standing ops rule.",
+    "tags": "type:pattern, domain:ops, skill:general, status:active, source:user, confidence:high",
+    "project": "openclaw",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-25T18:49:27.629009+00:00"
+  },
+  {
+    "id": "mem_0e51fb5b765c8d00",
+    "content": "Browser automation: Playwright headless works on the oclaw VM. Run quick test from /home/desazure/browser-test: launch chromium headless and goto https://example.com; expect title 'Example Domain' and OK. Operational runbook: ops/docs/browser-automation/oclaw-browser-automation.md. Note: this is VM-level Playwright (distinct from OpenClaw browser tool service).",
+    "tags": "type:fact, type:pattern, domain:infrastructure, domain:ops, skill:general, confidence:high, status:active, source:user",
+    "project": "openclaw",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-25T18:50:40.004183+00:00"
+  },
+  {
+    "id": "mem_cdef65dcfd34fbea",
+    "content": "Startup MVP (HingeX Social Connector MVP1): core loop = Find \u2192 Signal \u2192 Consent \u2192 Connect. Minimal profile (2\u20133 photos + quote + activity). Discovery requires being out + moving; nearby proximity ~1 mile; match window expires in 24h; chat unlocks only on mutual match. Trust: work-email verification badge (MVP1-lite), optional verified-only filter. Vibe Map ships simulated for investor demo; real user-powered density map deferred to Phase II. Non-goals: couch-swiping browse feed, exact location sharing, venue integrations (Yelp/Resy/OpenTable), heavy ML matching, real-time websockets/H3 gamification.",
+    "tags": "type:decision, type:context, domain:product, source:user, status:active, confidence:high",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T03:03:18.579318+00:00"
+  },
+  {
+    "id": "mem_25e358342cc538eb",
+    "content": "Moved AI Search sync instruction guide to skills/clawbot-memory/docs/ai-search-sync-guide.md (best-practice docs location). When user says 'add to AI search', run mem.py add then memory_bridge.py sync (in this venv).",
+    "tags": "type:pattern, domain:ai, skill:memory, status:active, source:user, confidence:high",
+    "project": "openclaw-ops",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T03:51:03.932258+00:00"
+  },
+  {
+    "id": "mem_9b1b53c1034511cc",
+    "content": "Created classified internal research doc: ops/docs/internal/geo-heat-map-research.md (geo-social apps patterns for gating map/density features until critical mass; Snap Map visibility rules; Zenly context; Waze staged network effects; open tasks for Nextdoor/Yik Yak).",
+    "tags": "type:research, domain:product, domain:growth, domain:competitors, source:research, status:active",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T06:32:12.520745+00:00"
+  },
+  {
+    "id": "mem_46a61568a3d5641f",
+    "content": "Expanded ops/docs/internal/geo-heat-map-research.md with more primary sources: Snap Map safety update post (opt-in, off by default, app-open updates historically, two-way friendship) and refined Waze staged network effects framing + KPI/phasing guidance.",
+    "tags": "type:research, domain:product, domain:growth, domain:competitors, source:research, source:competitor, status:active, confidence:high",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T06:34:16.672231+00:00"
+  },
+  {
+    "id": "mem_2ae18f061dbcd4ad",
+    "content": "Updated geo-heat-map-research.md with a clear definition of N/K/M cluster-based unlock thresholds to avoid the 'one-blob map' anti-pattern; recommend showing Party Map/Hotspot copy until multiple clusters exist.",
+    "tags": "type:pattern, domain:product, skill:general, status:active, source:user, confidence:high",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T06:42:30.973224+00:00"
+  },
+  {
+    "id": "mem_a8318ab3e3539744",
+    "content": "CLASSIFIED/RESTRICTED doc location: ops/docs/internal/geo-heat-map-research.md \u2014 geo-social map/heat-map gating patterns, anti-patterns, and unlock thresholds (N/K/M clusters) for HingeX Vibe Map.",
+    "tags": "type:research, domain:product, source:user, confidence:high, status:active",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T06:43:27.937997+00:00"
+  },
+  {
+    "id": "mem_2393270271574245",
+    "content": "Created CLASSIFIED internal phase plan doc: ops/docs/internal/phase-plan-heat-map.md (Hotspot \u2192 Party Map (curated) \u2192 Live Vibe Map ladder, UX/copy, N/K/M unlock thresholds, feature flags, KPIs). Linked from repos/the-app/INDEX.md.",
+    "tags": "type:context, domain:product, source:user, confidence:high, status:active",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T06:50:57.310041+00:00"
+  },
+  {
+    "id": "mem_bb59e9b50834d196",
+    "content": "Tagging note: ops/docs/internal/phase-plan-heat-map.md is an app launch phase-plan doc (phased rollout ladder + unlock criteria). Use tags app-launch + launch-phases + phase-plan.",
+    "tags": "type:pattern, domain:ops, skill:memory, source:user, confidence:high, status:active",
+    "project": "the-app",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-02-28T06:52:18.399585+00:00"
+  },
+  {
+    "id": "mem_128c34668efad47c",
+    "content": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0).",
+    "tags": "type:architecture, domain:infrastructure, skill:general, status:active, source:user, confidence:high, pin:reference, permanent:true",
+    "project": "oclaw",
+    "importance": 10,
+    "access_count": 0,
+    "created_at": "2026-03-01T21:37:53.486532+00:00"
+  },
+  {
+    "id": "mem_52686fb504f3a038",
+    "content": "Created skill 'work-decision-coach' (big-tech generic) to coach high-stakes work decisions with 80% execution + 20% politics literacy. Outputs: fastest safe move, 80/20 breakdown, stakeholder/incentive map, pre-wire plan + message drafts, positive influence plan, and ALWAYS a paste-ready brag-log entry. References include templates.md, operating_model.md (weekly/biweekly/monthly/quarterly cadence), and microsoft_ops_template.md (blank fill-in for Microsoft-specific norms; remind Desi to fill).",
+    "tags": "type:pattern, domain:career, domain:ai, skill:general, status:active, source:user, confidence:high",
+    "project": "openclaw",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-03-04T03:07:28.076350+00:00"
+  },
+  {
+    "id": "mem_b2e937c49a3ac1d5",
+    "content": "Work-decision-coach prompt template: Situation; Decision; Options A/B/C; Deadline; Reversible + rollback; Customer impact; Stakeholders (roles only: sponsor/blockers/approvers/gets blamed); Risks; What you want. Shortcut prompt: 'Use work-decision-coach on this: \u2026 Deadline \u2026 Stakeholders \u2026'. Output always includes: fastest safe move, 80/20 breakdown, pre-wire plan + 1-liners, positive influence plan, message drafts, and a paste-ready brag-log entry.",
+    "tags": "type:pattern, domain:career, domain:ai, skill:general, status:active, source:user, confidence:high",
+    "project": "openclaw",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-03-04T03:09:39.701072+00:00"
+  },
+  {
+    "id": "mem_f410f0f6b88c7cfa",
+    "content": "Scheduling rule: When creating cron reminders/check-ins, avoid collisions by default\u2014always use an offset time (e.g., 3:17pm instead of 3:00pm). When offering schedule choices, prefer offset suggestions and remember to apply offsets consistently.",
+    "tags": "type:pattern, domain:ops, skill:general, confidence:high, status:active, source:user",
+    "project": "openclaw",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-03-04T11:19:54.279974+00:00"
+  },
+  {
+    "id": "mem_f00c6cfae9a6fac6",
+    "content": "Alo hat cleaning guide saved at workspace/notes/alo-clean-how-to.md. Hat is 100% cotton shell, 100% polyester lining. Clean drywall dust: dry brush first, then barely damp microfiber cloth with light dabbing. Use tiny drop of dish soap if residue remains. Air dry on a bowl/towel to hold shape. No washing machine, no bleach, no direct heat on polyester. Brim shaping: steam over kettle 10-15 sec then curve and hold (cotton responds well). Rubber band trick to hold curve overnight.",
+    "tags": "type:pattern, domain:ops, skill:general, source:user, confidence:high, status:active",
+    "project": "personal",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-03-22T18:10:53.712962+00:00"
+  },
+  {
+    "id": "mem_d3bd359817f925de",
+    "content": "Kettlebell purchase research saved at workspace/notes/kettlebell-alternatives.md. Desi looking for rubber-coated 9-10lb kettlebell cheaper than Nike (2). Top picks: Yes4All neoprene coated ~6 (amazon.com/dp/B0CTM9XW5R), Rep Fitness ~2 (repfitness.com/products/kettlebells-lb), Rogue rubber coated ~5-40 (roguefitness.com). Reddit favorites: Lifeline and Rep Fitness for mid-tier budget.",
+    "tags": "type:research, domain:ops, status:exploring, source:research, confidence:high",
+    "project": "personal",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-03-22T22:32:31.021531+00:00"
+  },
+  {
+    "id": "mem_07cbc55f08ed5c13",
+    "content": "Forearm/wrist rehab guide saved at workspace/notes/wrist-forearm-rehab.md. Desi has a hurt forearm. Tool: Ethos Adjustable Grip Trainer (Dick's). Rehab sequence: 1) Rest+ice 2) Wrist flexion/extension with band 3) Reverse wrist curls 4) Grip trainer at low resistance. Avoid grip trainer if tennis/golfer's elbow \u2014 aggravates tendons. No pain = safe to load.",
+    "tags": "type:pattern, domain:ops, skill:general, source:user, status:active, confidence:high",
+    "project": "personal",
+    "importance": 5,
+    "access_count": 0,
+    "created_at": "2026-03-22T22:39:09.149363+00:00"
+  }
+]

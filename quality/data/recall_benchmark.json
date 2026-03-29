@@ -1,0 +1,321 @@
+[
+  {
+    "id": "q001",
+    "query": "How does the OpenClaw VM egress through a residential IP address?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_128c34668efad47c"
+    ],
+    "expected_keywords": [
+      "OpenClaw",
+      "Linux",
+      "Azure",
+      "configured"
+    ],
+    "expected_absent": false,
+    "difficulty": "easy"
+  },
+  {
+    "id": "q002",
+    "query": "What is the team's preference for how the Tailscale exit-node watchdog should behave?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_09fb2a290522dd43"
+    ],
+    "expected_keywords": [
+      "preference",
+      "Tailscale",
+      "exit-node",
+      "watchdog"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q003",
+    "query": "What does the chromeos-nissa Tailscale exit-node watchdog cron job do?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_7e1362cfc9748deb"
+    ],
+    "expected_keywords": [
+      "chromeos-nissa",
+      "Tailscale",
+      "exit-node",
+      "watchdog"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q004",
+    "query": "What pattern of Python script execution was observed on 2026-02-23?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_15e404ef698a8c78"
+    ],
+    "expected_keywords": [
+      "repeatedly",
+      "executed",
+      "Python",
+      "script"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q005",
+    "query": "What does the /home/desazure/.openclaw/ path indicate about the local environment?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_07675599e4aeb637"
+    ],
+    "expected_keywords": [
+      "Local",
+      "environment",
+      "appears",
+      "include"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q006",
+    "query": "What was decided about the NYC major weather alert cron schedule?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_649474e434fa7429"
+    ],
+    "expected_keywords": [
+      "decided",
+      "change",
+      "NYC",
+      "major"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q007",
+    "query": "How does the weather alerting storm-mode cron job work?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_d4f08961fb815285"
+    ],
+    "expected_keywords": [
+      "Weather",
+      "alerting",
+      "system",
+      "includes"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q008",
+    "query": "What platform was used or considered for operational task management?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_6e60619eab12185a"
+    ],
+    "expected_keywords": [
+      "ClickUp",
+      "considered",
+      "operational",
+      "task"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q009",
+    "query": "How was Reddit content fetched when the browser tool was unavailable?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_5b42b1c297de1d69"
+    ],
+    "expected_keywords": [
+      "browser",
+      "tool",
+      "unavailable",
+      "planned"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q010",
+    "query": "What NWS endpoint is used for snowfall forecasting?",
+    "category": "verbatim",
+    "expected_memory_ids": [
+      "mem_29db8f9c78de4168"
+    ],
+    "expected_keywords": [
+      "weather",
+      "forecasting",
+      "planned",
+      "NWS"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q011",
+    "query": "When did we decide to change the NYC weather alert frequency to once daily?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_649474e434fa7429"
+    ],
+    "expected_keywords": [
+      "NYC",
+      "weather",
+      "cron",
+      "once-daily"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q012",
+    "query": "What did we decide about replacing Azure Bastion with Tailscale?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_128c34668efad47c"
+    ],
+    "expected_keywords": [
+      "Tailscale",
+      "Bastion",
+      "SSH",
+      "access"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q013",
+    "query": "When was the decision made to standardize on the weather.gov NWS API for NYC alerts?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_29db8f9c78de4168"
+    ],
+    "expected_keywords": [
+      "weather.gov",
+      "NWS",
+      "NYZ072",
+      "standardized"
+    ],
+    "expected_absent": false,
+    "difficulty": "hard"
+  },
+  {
+    "id": "q014",
+    "query": "What did we decide about tool confirmation gates for security?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_78a5ca7deb8bb597"
+    ],
+    "expected_keywords": [
+      "tool",
+      "confirmation",
+      "prompt-injection",
+      "exfil"
+    ],
+    "expected_absent": false,
+    "difficulty": "hard"
+  },
+  {
+    "id": "q015",
+    "query": "When did we decide to keep ClickUp lists to 2-3 and create separate Bills and Habits lists?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_7e6b0291a0c89330"
+    ],
+    "expected_keywords": [
+      "ClickUp",
+      "lists",
+      "Bills",
+      "Habits"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q016",
+    "query": "What did we decide about how the vector DB should be integrated?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_9c574619e9c016d3"
+    ],
+    "expected_keywords": [
+      "vector",
+      "read-only",
+      "retrieval",
+      "JSONL"
+    ],
+    "expected_absent": false,
+    "difficulty": "hard"
+  },
+  {
+    "id": "q017",
+    "query": "When was the HingeX Social Connector MVP1 scope decided?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_cdef65dcfd34fbea"
+    ],
+    "expected_keywords": [
+      "HingeX",
+      "MVP1",
+      "proximity",
+      "match"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q018",
+    "query": "What did we decide about adding Anthropic Engineering posts to the daily digest?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_239ebf4e2776db66"
+    ],
+    "expected_keywords": [
+      "Anthropic",
+      "Engineering",
+      "digest",
+      "WORKFLOW_AUTO"
+    ],
+    "expected_absent": false,
+    "difficulty": "easy"
+  },
+  {
+    "id": "q019",
+    "query": "When was the decision made to route VM traffic through a residential IP via Tailscale exit node?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_09fb2a290522dd43"
+    ],
+    "expected_keywords": [
+      "residential",
+      "exit",
+      "node",
+      "Tailscale"
+    ],
+    "expected_absent": false,
+    "difficulty": "medium"
+  },
+  {
+    "id": "q020",
+    "query": "What did we decide about using the NWS forecastGridData endpoint for snowfall?",
+    "category": "temporal",
+    "expected_memory_ids": [
+      "mem_15e404ef698a8c78"
+    ],
+    "expected_keywords": [
+      "NWS",
+      "forecastGridData",
+      "snowfallAmount"
+    ],
+    "expected_absent": false,
+    "difficulty": "hard"
+  }
+]

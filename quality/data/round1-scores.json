@@ -1,0 +1,292 @@
+{
+  "source_file": "quality/data/round1-baseline.json",
+  "model": "rule-based",
+  "dimensions": [
+    "relevance",
+    "noise"
+  ],
+  "timestamp": "2026-03-29T01:05:38.636993+00:00",
+  "total_scores": 40,
+  "scores": [
+    {
+      "query_id": "q001",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q001",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q002",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q002",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q003",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q003",
+      "dimension": "noise",
+      "score": 5,
+      "reasoning": "All top 5 results share keywords with the query.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q004",
+      "dimension": "relevance",
+      "score": 2,
+      "reasoning": "Expected memory ID not in top 5, but 2 expected keywords found in results: ['Python', 'script'].",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q004",
+      "dimension": "noise",
+      "score": 4,
+      "reasoning": "1 unrelated result in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q005",
+      "dimension": "relevance",
+      "score": 4,
+      "reasoning": "Expected memory ID found at rank 3 (within top 3).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q005",
+      "dimension": "noise",
+      "score": 3,
+      "reasoning": "2 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q006",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q006",
+      "dimension": "noise",
+      "score": 5,
+      "reasoning": "All top 5 results share keywords with the query.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q007",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q007",
+      "dimension": "noise",
+      "score": 5,
+      "reasoning": "All top 5 results share keywords with the query.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q008",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q008",
+      "dimension": "noise",
+      "score": 3,
+      "reasoning": "2 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q009",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q009",
+      "dimension": "noise",
+      "score": 3,
+      "reasoning": "2 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q010",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q010",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q011",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q011",
+      "dimension": "noise",
+      "score": 5,
+      "reasoning": "All top 5 results share keywords with the query.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q012",
+      "dimension": "relevance",
+      "score": 1,
+      "reasoning": "Expected memory ID not in top 5. No keywords matched.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q012",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q013",
+      "dimension": "relevance",
+      "score": 2,
+      "reasoning": "Expected memory ID not in top 5, but 4 expected keywords found in results: ['weather.gov', 'NWS', 'NYZ072', 'standardized'].",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q013",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q014",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q014",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q015",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q015",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q016",
+      "dimension": "relevance",
+      "score": 4,
+      "reasoning": "Expected memory ID found at rank 2 (within top 3).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q016",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q017",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q017",
+      "dimension": "noise",
+      "score": 2,
+      "reasoning": "3 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q018",
+      "dimension": "relevance",
+      "score": 5,
+      "reasoning": "Expected memory ID found at rank 1 (top result).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q018",
+      "dimension": "noise",
+      "score": 4,
+      "reasoning": "1 unrelated result in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q019",
+      "dimension": "relevance",
+      "score": 3,
+      "reasoning": "Expected memory ID found at rank 4 (within top 5).",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q019",
+      "dimension": "noise",
+      "score": 3,
+      "reasoning": "2 unrelated results in top 5.",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q020",
+      "dimension": "relevance",
+      "score": 2,
+      "reasoning": "Expected memory ID not in top 5, but 3 expected keywords found in results: ['NWS', 'forecastGridData', 'snowfallAmount'].",
+      "model": "rule-based"
+    },
+    {
+      "query_id": "q020",
+      "dimension": "noise",
+      "score": 3,
+      "reasoning": "2 unrelated results in top 5.",
+      "model": "rule-based"
+    }
+  ]
+}

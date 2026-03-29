@@ -1,0 +1,972 @@
+{
+  "benchmark_file": "quality/data/recall_benchmark.json",
+  "db_file": "/home/azureuser/Projects/oclaw-vm/memory.db",
+  "k": 5,
+  "mode": "rrf",
+  "total_queries": 20,
+  "total_hits": 18,
+  "total_misses": 2,
+  "hit_rate": 0.9,
+  "results": [
+    {
+      "query_id": "q001",
+      "query": "How does the OpenClaw VM egress through a residential IP address?",
+      "category": "verbatim",
+      "difficulty": "easy",
+      "expected_ids": [
+        "mem_128c34668efad47c"
+      ],
+      "recalled_ids": [
+        "mem_128c34668efad47c",
+        "mem_0e51fb5b765c8d00",
+        "mem_44ffa9ccc5c67131",
+        "mem_92bce58128f9a275",
+        "mem_76e97f2f96ed52c3"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_128c34668efad47c",
+          "score": 0.636364,
+          "snippet": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0)."
+        },
+        {
+          "id": "mem_0e51fb5b765c8d00",
+          "score": 0.326923,
+          "snippet": "Browser automation: Playwright headless works on the oclaw VM. Run quick test from /home/desazure/browser-test: launch chromium headless and goto https://example.com; expect title 'Example Domain' and"
+        },
+        {
+          "id": "mem_44ffa9ccc5c67131",
+          "score": 0.302198,
+          "snippet": "Directive (folder_organization): Always move newly created or discovered docs/scripts into the correct OpenClaw workspace subfolder per GLOBAL_FOLDER_STRUCTURE.md (no orphaned files). Log each move in"
+        },
+        {
+          "id": "mem_92bce58128f9a275",
+          "score": 0.22409,
+          "snippet": "The project uses a Google Drive upload workflow named \u201cgdrive-openclawshared\u201d that uploads into a shared Drive folder called \u201cOpenClawShared\u201d; next hardening step identified is confirmation gating plu"
+        },
+        {
+          "id": "mem_76e97f2f96ed52c3",
+          "score": 0.214286,
+          "snippet": "Security hardening: gateway bind was locked down from LAN exposure to `loopback`, and Tailscale-related configuration was applied per OpenClaw gateway tailscale docs."
+        }
+      ],
+      "hits": [
+        "mem_128c34668efad47c"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q002",
+      "query": "What is the team's preference for how the Tailscale exit-node watchdog should behave?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_09fb2a290522dd43"
+      ],
+      "recalled_ids": [
+        "mem_09fb2a290522dd43",
+        "mem_7e1362cfc9748deb",
+        "mem_4d29614388fcfbee",
+        "mem_128c34668efad47c",
+        "mem_76e97f2f96ed52c3"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_09fb2a290522dd43",
+          "score": 0.673893,
+          "snippet": "Team preference for Tailscale exit-node watchdog: run a deterministic health check and emit alerts only when the exit-node state changes (down\u2192up or up\u2192down), to avoid repeated notifications."
+        },
+        {
+          "id": "mem_7e1362cfc9748deb",
+          "score": 0.478737,
+          "snippet": "The \"chromeos-nissa\" Tailscale exit-node watchdog cron job is configured to alert when the node goes down and when it recovers."
+        },
+        {
+          "id": "mem_4d29614388fcfbee",
+          "score": 0.323013,
+          "snippet": "Team\u2019s VM access posture: Tailscale is considered sufficient to replace Azure Bastion for SSH/RDP-style access, reducing complexity/cost, assuming Tailscale remains reliable."
+        },
+        {
+          "id": "mem_128c34668efad47c",
+          "score": 0.317832,
+          "snippet": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0)."
+        },
+        {
+          "id": "mem_76e97f2f96ed52c3",
+          "score": 0.27714,
+          "snippet": "Security hardening: gateway bind was locked down from LAN exposure to `loopback`, and Tailscale-related configuration was applied per OpenClaw gateway tailscale docs."
+        }
+      ],
+      "hits": [
+        "mem_09fb2a290522dd43"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q003",
+      "query": "What does the chromeos-nissa Tailscale exit-node watchdog cron job do?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_7e1362cfc9748deb"
+      ],
+      "recalled_ids": [
+        "mem_7e1362cfc9748deb",
+        "mem_09fb2a290522dd43",
+        "mem_128c34668efad47c",
+        "mem_76e97f2f96ed52c3",
+        "mem_4d29614388fcfbee"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_7e1362cfc9748deb",
+          "score": 0.707792,
+          "snippet": "The \"chromeos-nissa\" Tailscale exit-node watchdog cron job is configured to alert when the node goes down and when it recovers."
+        },
+        {
+          "id": "mem_09fb2a290522dd43",
+          "score": 0.55,
+          "snippet": "Team preference for Tailscale exit-node watchdog: run a deterministic health check and emit alerts only when the exit-node state changes (down\u2192up or up\u2192down), to avoid repeated notifications."
+        },
+        {
+          "id": "mem_128c34668efad47c",
+          "score": 0.342832,
+          "snippet": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0)."
+        },
+        {
+          "id": "mem_76e97f2f96ed52c3",
+          "score": 0.27714,
+          "snippet": "Security hardening: gateway bind was locked down from LAN exposure to `loopback`, and Tailscale-related configuration was applied per OpenClaw gateway tailscale docs."
+        },
+        {
+          "id": "mem_4d29614388fcfbee",
+          "score": 0.256685,
+          "snippet": "Team\u2019s VM access posture: Tailscale is considered sufficient to replace Azure Bastion for SSH/RDP-style access, reducing complexity/cost, assuming Tailscale remains reliable."
+        }
+      ],
+      "hits": [
+        "mem_7e1362cfc9748deb"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q004",
+      "query": "What pattern of Python script execution was observed on 2026-02-23?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_15e404ef698a8c78"
+      ],
+      "recalled_ids": [
+        "mem_2d2a5de21462859f",
+        "mem_15e404ef698a8c78",
+        "mem_52686fb504f3a038",
+        "mem_44ffa9ccc5c67131",
+        "mem_d745a92d29b8edca"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_2d2a5de21462859f",
+          "score": 0.467172,
+          "snippet": "An error pattern occurred during execution involving Python subprocess.check_output returning a non-zero exit (code 1), indicating a recurring need to inspect error logs around job runs."
+        },
+        {
+          "id": "mem_15e404ef698a8c78",
+          "score": 0.432915,
+          "snippet": "Team repeatedly executed a Python script from /home/desazure/.openclaw/workspa (likely a workspace automation/runner) over an extended period on 2026-02-23."
+        },
+        {
+          "id": "mem_52686fb504f3a038",
+          "score": 0.335664,
+          "snippet": "Created skill 'work-decision-coach' (big-tech generic) to coach high-stakes work decisions with 80% execution + 20% politics literacy. Outputs: fastest safe move, 80/20 breakdown, stakeholder/incentiv"
+        },
+        {
+          "id": "mem_44ffa9ccc5c67131",
+          "score": 0.26549,
+          "snippet": "Directive (folder_organization): Always move newly created or discovered docs/scripts into the correct OpenClaw workspace subfolder per GLOBAL_FOLDER_STRUCTURE.md (no orphaned files). Log each move in"
+        },
+        {
+          "id": "mem_d745a92d29b8edca",
+          "score": 0.262155,
+          "snippet": "Ops: ClickUp due alerts system was modified\u2014cron schedule updated, alert modes supported via `CLICKUP_ALERT_MODE` (e.g., `daily` and `frequent`), and the implementation/docs were updated (`scripts/cli"
+        }
+      ],
+      "hits": [
+        "mem_15e404ef698a8c78"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q005",
+      "query": "What does the /home/desazure/.openclaw/ path indicate about the local environment?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_07675599e4aeb637"
+      ],
+      "recalled_ids": [
+        "mem_07675599e4aeb637",
+        "mem_0e51fb5b765c8d00",
+        "mem_15e404ef698a8c78",
+        "mem_44ffa9ccc5c67131",
+        "mem_128c34668efad47c"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_07675599e4aeb637",
+          "score": 0.655206,
+          "snippet": "Local environment appears to include a user/home directory path /home/desazure/.openclaw/, suggesting an OpenClaw-related local toolchain or workspace structure is in use."
+        },
+        {
+          "id": "mem_0e51fb5b765c8d00",
+          "score": 0.571873,
+          "snippet": "Browser automation: Playwright headless works on the oclaw VM. Run quick test from /home/desazure/browser-test: launch chromium headless and goto https://example.com; expect title 'Example Domain' and"
+        },
+        {
+          "id": "mem_15e404ef698a8c78",
+          "score": 0.410324,
+          "snippet": "Team repeatedly executed a Python script from /home/desazure/.openclaw/workspa (likely a workspace automation/runner) over an extended period on 2026-02-23."
+        },
+        {
+          "id": "mem_44ffa9ccc5c67131",
+          "score": 0.334317,
+          "snippet": "Directive (folder_organization): Always move newly created or discovered docs/scripts into the correct OpenClaw workspace subfolder per GLOBAL_FOLDER_STRUCTURE.md (no orphaned files). Log each move in"
+        },
+        {
+          "id": "mem_128c34668efad47c",
+          "score": 0.3171,
+          "snippet": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0)."
+        }
+      ],
+      "hits": [
+        "mem_07675599e4aeb637"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q006",
+      "query": "What was decided about the NYC major weather alert cron schedule?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_649474e434fa7429"
+      ],
+      "recalled_ids": [
+        "mem_649474e434fa7429",
+        "mem_4f39e5aea5d1f97b",
+        "mem_cc53868b4b16f56a",
+        "mem_72ea3e4aed167b36",
+        "mem_58bc6df4f6b5fb46"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.599246,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        },
+        {
+          "id": "mem_4f39e5aea5d1f97b",
+          "score": 0.589394,
+          "snippet": "Ops: scheduled multiple cron jobs for NYC weather monitoring, including major weather alerts (3x/day), a reminder job, and a storm-mode update job."
+        },
+        {
+          "id": "mem_cc53868b4b16f56a",
+          "score": 0.480769,
+          "snippet": "Ops: implemented an NYC major weather alerts skill (`skills/weather-storm-alerts-nyc`) with a script `scripts/check_nws_alerts_nyc.py`, plus documentation `ops/docs/weather-storm-alerts-nyc.md`."
+        },
+        {
+          "id": "mem_72ea3e4aed167b36",
+          "score": 0.416699,
+          "snippet": "Team standardized NYC major-weather alert sourcing on the official weather.gov (NWS) API, referencing NWS zone NYZ072 for NYC/Manhattan-area alerts."
+        },
+        {
+          "id": "mem_58bc6df4f6b5fb46",
+          "score": 0.389484,
+          "snippet": "Ops has a recurring cron job \u201cNYC major weather reminder (until ack)\u201d that runs until acknowledged."
+        }
+      ],
+      "hits": [
+        "mem_649474e434fa7429"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q007",
+      "query": "How does the weather alerting storm-mode cron job work?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_d4f08961fb815285"
+      ],
+      "recalled_ids": [
+        "mem_d4f08961fb815285",
+        "mem_4f39e5aea5d1f97b",
+        "mem_9b95838b03e8219f",
+        "mem_0f431226856dde0e",
+        "mem_58bc6df4f6b5fb46"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_d4f08961fb815285",
+          "score": 0.650816,
+          "snippet": "Weather alerting system includes a storm-mode cron job that runs every 3 hours until an acknowledgement is received (\"q3h until ack\")."
+        },
+        {
+          "id": "mem_4f39e5aea5d1f97b",
+          "score": 0.606061,
+          "snippet": "Ops: scheduled multiple cron jobs for NYC weather monitoring, including major weather alerts (3x/day), a reminder job, and a storm-mode update job."
+        },
+        {
+          "id": "mem_9b95838b03e8219f",
+          "score": 0.470469,
+          "snippet": "A scheduled weather-alert run intermittently failed to deliver because it attempted to send a message \u201cwithout a target\u201d; storm-mode updates continued to deliver despite the glitch."
+        },
+        {
+          "id": "mem_0f431226856dde0e",
+          "score": 0.38623,
+          "snippet": "ClickUp alerting approach: use ClickUp for task planning, but rely on OpenClaw cron-based reminders/alerts for higher reliability (\"don\u2019t miss it\" nagging)."
+        },
+        {
+          "id": "mem_58bc6df4f6b5fb46",
+          "score": 0.309652,
+          "snippet": "Ops has a recurring cron job \u201cNYC major weather reminder (until ack)\u201d that runs until acknowledged."
+        }
+      ],
+      "hits": [
+        "mem_d4f08961fb815285"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q008",
+      "query": "What platform was used or considered for operational task management?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_6e60619eab12185a"
+      ],
+      "recalled_ids": [
+        "mem_6e60619eab12185a",
+        "mem_4d29614388fcfbee",
+        "mem_8511392c0a924e70",
+        "mem_0e51fb5b765c8d00",
+        "mem_9b1b53c1034511cc"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_6e60619eab12185a",
+          "score": 0.704545,
+          "snippet": "ClickUp was used/considered for operational task management via the ClickUp API, including updating tasks and exploring creating list structures within a space."
+        },
+        {
+          "id": "mem_4d29614388fcfbee",
+          "score": 0.362811,
+          "snippet": "Team\u2019s VM access posture: Tailscale is considered sufficient to replace Azure Bastion for SSH/RDP-style access, reducing complexity/cost, assuming Tailscale remains reliable."
+        },
+        {
+          "id": "mem_8511392c0a924e70",
+          "score": 0.329004,
+          "snippet": "Team attempted to add Anthropic as a digest source but noted that Anthropic pages used for news/engineering were fetched directly (not a discovered RSS feed), implying RSS availability was uncertain."
+        },
+        {
+          "id": "mem_0e51fb5b765c8d00",
+          "score": 0.251166,
+          "snippet": "Browser automation: Playwright headless works on the oclaw VM. Run quick test from /home/desazure/browser-test: launch chromium headless and goto https://example.com; expect title 'Example Domain' and"
+        },
+        {
+          "id": "mem_9b1b53c1034511cc",
+          "score": 0.160256,
+          "snippet": "Created classified internal research doc: ops/docs/internal/geo-heat-map-research.md (geo-social apps patterns for gating map/density features until critical mass; Snap Map visibility rules; Zenly con"
+        }
+      ],
+      "hits": [
+        "mem_6e60619eab12185a"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q009",
+      "query": "How was Reddit content fetched when the browser tool was unavailable?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_5b42b1c297de1d69"
+      ],
+      "recalled_ids": [
+        "mem_5b42b1c297de1d69",
+        "mem_8511392c0a924e70",
+        "mem_0e51fb5b765c8d00",
+        "mem_d3bd359817f925de",
+        "mem_9da8254ec4aec597"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_5b42b1c297de1d69",
+          "score": 0.614802,
+          "snippet": "When the browser tool was unavailable, the team planned to fetch Reddit content via Reddit\u2019s JSON endpoints (e.g., for r/ClaudeAI top posts) as an alternative ingestion method."
+        },
+        {
+          "id": "mem_8511392c0a924e70",
+          "score": 0.403247,
+          "snippet": "Team attempted to add Anthropic as a digest source but noted that Anthropic pages used for news/engineering were fetched directly (not a discovered RSS feed), implying RSS availability was uncertain."
+        },
+        {
+          "id": "mem_0e51fb5b765c8d00",
+          "score": 0.251166,
+          "snippet": "Browser automation: Playwright headless works on the oclaw VM. Run quick test from /home/desazure/browser-test: launch chromium headless and goto https://example.com; expect title 'Example Domain' and"
+        },
+        {
+          "id": "mem_d3bd359817f925de",
+          "score": 0.154762,
+          "snippet": "Kettlebell purchase research saved at workspace/notes/kettlebell-alternatives.md. Desi looking for rubber-coated 9-10lb kettlebell cheaper than Nike (2). Top picks: Yes4All neoprene coated ~6 (amazon."
+        },
+        {
+          "id": "mem_9da8254ec4aec597",
+          "score": 0.139423,
+          "snippet": "Team added an internal doc listing AI-related subreddits for ongoing monitoring (ops/docs/ai-subreddits.md)."
+        }
+      ],
+      "hits": [
+        "mem_5b42b1c297de1d69"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q010",
+      "query": "What NWS endpoint is used for snowfall forecasting?",
+      "category": "verbatim",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_29db8f9c78de4168"
+      ],
+      "recalled_ids": [
+        "mem_29db8f9c78de4168",
+        "mem_98a2804f94bae7fa",
+        "mem_8511392c0a924e70",
+        "mem_4f2ac48b54a401d8",
+        "mem_5b42b1c297de1d69"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_29db8f9c78de4168",
+          "score": 0.684149,
+          "snippet": "For weather forecasting, the team planned to use the NWS forecastGridData endpoint specifically to retrieve snowfallAmount for more accurate snowfall forecasts."
+        },
+        {
+          "id": "mem_98a2804f94bae7fa",
+          "score": 0.405927,
+          "snippet": "Weather updates were also pulled for Westchester near White Plains using NWS gridpoint OKX 39,51, including a Scarsdale point forecast for snowfall estimates."
+        },
+        {
+          "id": "mem_8511392c0a924e70",
+          "score": 0.342075,
+          "snippet": "Team attempted to add Anthropic as a digest source but noted that Anthropic pages used for news/engineering were fetched directly (not a discovered RSS feed), implying RSS availability was uncertain."
+        },
+        {
+          "id": "mem_4f2ac48b54a401d8",
+          "score": 0.329004,
+          "snippet": "Product/ops: built and scheduled a daily 'high-signal AI digest' pipeline using sources from Reddit via public JSON endpoints with a filter/scoring step, then summarize top N items."
+        },
+        {
+          "id": "mem_5b42b1c297de1d69",
+          "score": 0.256539,
+          "snippet": "When the browser tool was unavailable, the team planned to fetch Reddit content via Reddit\u2019s JSON endpoints (e.g., for r/ClaudeAI top posts) as an alternative ingestion method."
+        }
+      ],
+      "hits": [
+        "mem_29db8f9c78de4168"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q011",
+      "query": "When did we decide to change the NYC weather alert frequency to once daily?",
+      "category": "temporal",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_649474e434fa7429"
+      ],
+      "recalled_ids": [
+        "mem_649474e434fa7429",
+        "mem_4f39e5aea5d1f97b",
+        "mem_cc53868b4b16f56a",
+        "mem_72ea3e4aed167b36",
+        "mem_9b95838b03e8219f"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.568831,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        },
+        {
+          "id": "mem_4f39e5aea5d1f97b",
+          "score": 0.425408,
+          "snippet": "Ops: scheduled multiple cron jobs for NYC weather monitoring, including major weather alerts (3x/day), a reminder job, and a storm-mode update job."
+        },
+        {
+          "id": "mem_cc53868b4b16f56a",
+          "score": 0.391941,
+          "snippet": "Ops: implemented an NYC major weather alerts skill (`skills/weather-storm-alerts-nyc`) with a script `scripts/check_nws_alerts_nyc.py`, plus documentation `ops/docs/weather-storm-alerts-nyc.md`."
+        },
+        {
+          "id": "mem_72ea3e4aed167b36",
+          "score": 0.30707,
+          "snippet": "Team standardized NYC major-weather alert sourcing on the official weather.gov (NWS) API, referencing NWS zone NYZ072 for NYC/Manhattan-area alerts."
+        },
+        {
+          "id": "mem_9b95838b03e8219f",
+          "score": 0.261645,
+          "snippet": "A scheduled weather-alert run intermittently failed to deliver because it attempted to send a message \u201cwithout a target\u201d; storm-mode updates continued to deliver despite the glitch."
+        }
+      ],
+      "hits": [
+        "mem_649474e434fa7429"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q012",
+      "query": "What did we decide about replacing Azure Bastion with Tailscale?",
+      "category": "temporal",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_128c34668efad47c"
+      ],
+      "recalled_ids": [
+        "mem_4d29614388fcfbee",
+        "mem_128c34668efad47c",
+        "mem_d8597dba29c2cade",
+        "mem_0e51fb5b765c8d00",
+        "mem_649474e434fa7429"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_4d29614388fcfbee",
+          "score": 0.483579,
+          "snippet": "Team\u2019s VM access posture: Tailscale is considered sufficient to replace Azure Bastion for SSH/RDP-style access, reducing complexity/cost, assuming Tailscale remains reliable."
+        },
+        {
+          "id": "mem_128c34668efad47c",
+          "score": 0.398485,
+          "snippet": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0)."
+        },
+        {
+          "id": "mem_d8597dba29c2cade",
+          "score": 0.291209,
+          "snippet": "We have a long-term memory system skill 'clawbot-memory' backed by local SQLite + Azure AI Search. Use its venv and the CLI: skills/clawbot-memory/cli/mem.py add/search; use memory_bridge.py sync when"
+        },
+        {
+          "id": "mem_0e51fb5b765c8d00",
+          "score": 0.278846,
+          "snippet": "Browser automation: Playwright headless works on the oclaw VM. Run quick test from /home/desazure/browser-test: launch chromium headless and goto https://example.com; expect title 'Example Domain' and"
+        },
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.244318,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        }
+      ],
+      "hits": [
+        "mem_128c34668efad47c"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q013",
+      "query": "When was the decision made to standardize on the weather.gov NWS API for NYC alerts?",
+      "category": "temporal",
+      "difficulty": "hard",
+      "expected_ids": [
+        "mem_29db8f9c78de4168"
+      ],
+      "recalled_ids": [
+        "mem_72ea3e4aed167b36",
+        "mem_4f39e5aea5d1f97b",
+        "mem_cc53868b4b16f56a",
+        "mem_9350a34cc4f76b22",
+        "mem_ea9b978a17c28c53"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_72ea3e4aed167b36",
+          "score": 0.513369,
+          "snippet": "Team standardized NYC major-weather alert sourcing on the official weather.gov (NWS) API, referencing NWS zone NYZ072 for NYC/Manhattan-area alerts."
+        },
+        {
+          "id": "mem_4f39e5aea5d1f97b",
+          "score": 0.313666,
+          "snippet": "Ops: scheduled multiple cron jobs for NYC weather monitoring, including major weather alerts (3x/day), a reminder job, and a storm-mode update job."
+        },
+        {
+          "id": "mem_cc53868b4b16f56a",
+          "score": 0.302413,
+          "snippet": "Ops: implemented an NYC major weather alerts skill (`skills/weather-storm-alerts-nyc`) with a script `scripts/check_nws_alerts_nyc.py`, plus documentation `ops/docs/weather-storm-alerts-nyc.md`."
+        },
+        {
+          "id": "mem_9350a34cc4f76b22",
+          "score": 0.276085,
+          "snippet": "When a major NWS alert is active, the system is configured to re-check weather.gov for updates to avoid stale timing/impact details."
+        },
+        {
+          "id": "mem_ea9b978a17c28c53",
+          "score": 0.240278,
+          "snippet": "A daily weather.gov check skill was created/configured to run once per day."
+        }
+      ],
+      "hits": [],
+      "misses": [
+        "mem_29db8f9c78de4168"
+      ],
+      "hit": false
+    },
+    {
+      "query_id": "q014",
+      "query": "What did we decide about tool confirmation gates for security?",
+      "category": "temporal",
+      "difficulty": "hard",
+      "expected_ids": [
+        "mem_78a5ca7deb8bb597"
+      ],
+      "recalled_ids": [
+        "mem_78a5ca7deb8bb597",
+        "mem_239ebf4e2776db66",
+        "mem_07cbc55f08ed5c13",
+        "mem_92bce58128f9a275",
+        "mem_649474e434fa7429"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_78a5ca7deb8bb597",
+          "score": 0.518398,
+          "snippet": "Team is implementing \u201ctool confirmation\u201d gates for exec operations scoped to critical file access, with exceptions intended not to break existing skills, to reduce prompt-injection\u2192tool\u2192secret-exfil r"
+        },
+        {
+          "id": "mem_239ebf4e2776db66",
+          "score": 0.371108,
+          "snippet": "Team added Anthropic Engineering posts as a recommended/source category for the daily digest (noted as strong for context engineering, eval harnesses, MCP/tooling, and agent security) and documented i"
+        },
+        {
+          "id": "mem_07cbc55f08ed5c13",
+          "score": 0.334499,
+          "snippet": "Forearm/wrist rehab guide saved at workspace/notes/wrist-forearm-rehab.md. Desi has a hurt forearm. Tool: Ethos Adjustable Grip Trainer (Dick's). Rehab sequence: 1) Rest+ice 2) Wrist flexion/extension"
+        },
+        {
+          "id": "mem_92bce58128f9a275",
+          "score": 0.299733,
+          "snippet": "The project uses a Google Drive upload workflow named \u201cgdrive-openclawshared\u201d that uploads into a shared Drive folder called \u201cOpenClawShared\u201d; next hardening step identified is confirmation gating plu"
+        },
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.245076,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        }
+      ],
+      "hits": [
+        "mem_78a5ca7deb8bb597"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q015",
+      "query": "When did we decide to keep ClickUp lists to 2-3 and create separate Bills and Habits lists?",
+      "category": "temporal",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_7e6b0291a0c89330"
+      ],
+      "recalled_ids": [
+        "mem_7e6b0291a0c89330",
+        "mem_f2ed491b50d8c4b3",
+        "mem_d745a92d29b8edca",
+        "mem_8144ef9e4443adeb",
+        "mem_665f6f3658d8ea22"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_7e6b0291a0c89330",
+          "score": 0.600379,
+          "snippet": "ClickUp organizational structure decision: keep list count small (2\u20133 lists) and avoid tag bloat; create separate \u201cBills\u201d and \u201cHabits\u201d lists rather than many lists/tags."
+        },
+        {
+          "id": "mem_f2ed491b50d8c4b3",
+          "score": 0.345971,
+          "snippet": "A local git \u201cbackup snapshot\u201d commit was created containing durable ops changes (heartbeat prompt tweak, ClickUp alerting changes and docs, ops scripts/docs, new skills, updated .gitignore) while excl"
+        },
+        {
+          "id": "mem_d745a92d29b8edca",
+          "score": 0.313131,
+          "snippet": "Ops: ClickUp due alerts system was modified\u2014cron schedule updated, alert modes supported via `CLICKUP_ALERT_MODE` (e.g., `daily` and `frequent`), and the implementation/docs were updated (`scripts/cli"
+        },
+        {
+          "id": "mem_8144ef9e4443adeb",
+          "score": 0.279304,
+          "snippet": "Personal finance task surfaced via ClickUp: \u201cIdentify $500 hospital bill + confirm due date\u201d was flagged as urgent and due the next day at 2pm."
+        },
+        {
+          "id": "mem_665f6f3658d8ea22",
+          "score": 0.270464,
+          "snippet": "Daily digest sources expanded beyond Reddit to RSS/Atom feeds using the same pipeline mechanics (fetch\u2192score\u2192keep top N\u2192summarize)."
+        }
+      ],
+      "hits": [
+        "mem_7e6b0291a0c89330"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q016",
+      "query": "What did we decide about how the vector DB should be integrated?",
+      "category": "temporal",
+      "difficulty": "hard",
+      "expected_ids": [
+        "mem_9c574619e9c016d3"
+      ],
+      "recalled_ids": [
+        "mem_9c574619e9c016d3",
+        "mem_649474e434fa7429",
+        "mem_f00c6cfae9a6fac6",
+        "mem_9b95838b03e8219f",
+        "mem_2393270271574245"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_9c574619e9c016d3",
+          "score": 0.537879,
+          "snippet": "Team architectural guidance: vector DB should be integrated as a read-only retrieval layer fed by existing rotate/archive\u2192parse JSONL\u2192chunk/embed/upsert workflows, not written by live chat, to avoid p"
+        },
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.334499,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        },
+        {
+          "id": "mem_f00c6cfae9a6fac6",
+          "score": 0.090909,
+          "snippet": "Alo hat cleaning guide saved at workspace/notes/alo-clean-how-to.md. Hat is 100% cotton shell, 100% polyester lining. Clean drywall dust: dry brush first, then barely damp microfiber cloth with light "
+        },
+        {
+          "id": "mem_9b95838b03e8219f",
+          "score": 0.071429,
+          "snippet": "A scheduled weather-alert run intermittently failed to deliver because it attempted to send a message \u201cwithout a target\u201d; storm-mode updates continued to deliver despite the glitch."
+        },
+        {
+          "id": "mem_2393270271574245",
+          "score": 0.066667,
+          "snippet": "Created CLASSIFIED internal phase plan doc: ops/docs/internal/phase-plan-heat-map.md (Hotspot \u2192 Party Map (curated) \u2192 Live Vibe Map ladder, UX/copy, N/K/M unlock thresholds, feature flags, KPIs). Link"
+        }
+      ],
+      "hits": [
+        "mem_9c574619e9c016d3"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q017",
+      "query": "When was the HingeX Social Connector MVP1 scope decided?",
+      "category": "temporal",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_cdef65dcfd34fbea"
+      ],
+      "recalled_ids": [
+        "mem_cdef65dcfd34fbea",
+        "mem_a8318ab3e3539744",
+        "mem_9b1b53c1034511cc",
+        "mem_649474e434fa7429",
+        "mem_5b42b1c297de1d69"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_cdef65dcfd34fbea",
+          "score": 0.621212,
+          "snippet": "Startup MVP (HingeX Social Connector MVP1): core loop = Find \u2192 Signal \u2192 Consent \u2192 Connect. Minimal profile (2\u20133 photos + quote + activity). Discovery requires being out + moving; nearby proximity ~1 m"
+        },
+        {
+          "id": "mem_a8318ab3e3539744",
+          "score": 0.419913,
+          "snippet": "CLASSIFIED/RESTRICTED doc location: ops/docs/internal/geo-heat-map-research.md \u2014 geo-social map/heat-map gating patterns, anti-patterns, and unlock thresholds (N/K/M clusters) for HingeX Vibe Map."
+        },
+        {
+          "id": "mem_9b1b53c1034511cc",
+          "score": 0.230769,
+          "snippet": "Created classified internal research doc: ops/docs/internal/geo-heat-map-research.md (geo-social apps patterns for gating map/density features until critical mass; Snap Map visibility rules; Zenly con"
+        },
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.157576,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        },
+        {
+          "id": "mem_5b42b1c297de1d69",
+          "score": 0.083333,
+          "snippet": "When the browser tool was unavailable, the team planned to fetch Reddit content via Reddit\u2019s JSON endpoints (e.g., for r/ClaudeAI top posts) as an alternative ingestion method."
+        }
+      ],
+      "hits": [
+        "mem_cdef65dcfd34fbea"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q018",
+      "query": "What did we decide about adding Anthropic Engineering posts to the daily digest?",
+      "category": "temporal",
+      "difficulty": "easy",
+      "expected_ids": [
+        "mem_239ebf4e2776db66"
+      ],
+      "recalled_ids": [
+        "mem_8511392c0a924e70",
+        "mem_239ebf4e2776db66",
+        "mem_649474e434fa7429",
+        "mem_665f6f3658d8ea22",
+        "mem_ea9b978a17c28c53"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_8511392c0a924e70",
+          "score": 0.523893,
+          "snippet": "Team attempted to add Anthropic as a digest source but noted that Anthropic pages used for news/engineering were fetched directly (not a discovered RSS feed), implying RSS availability was uncertain."
+        },
+        {
+          "id": "mem_239ebf4e2776db66",
+          "score": 0.515152,
+          "snippet": "Team added Anthropic Engineering posts as a recommended/source category for the daily digest (noted as strong for context engineering, eval harnesses, MCP/tooling, and agent security) and documented i"
+        },
+        {
+          "id": "mem_649474e434fa7429",
+          "score": 0.320707,
+          "snippet": "Team decided to change the NYC major weather alert cron schedule from 3x/day to 1x/day because the user explicitly requested once-daily alerts (with manual runs as a fallback if needed)."
+        },
+        {
+          "id": "mem_665f6f3658d8ea22",
+          "score": 0.122222,
+          "snippet": "Daily digest sources expanded beyond Reddit to RSS/Atom feeds using the same pipeline mechanics (fetch\u2192score\u2192keep top N\u2192summarize)."
+        },
+        {
+          "id": "mem_ea9b978a17c28c53",
+          "score": 0.113095,
+          "snippet": "A daily weather.gov check skill was created/configured to run once per day."
+        }
+      ],
+      "hits": [
+        "mem_239ebf4e2776db66"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q019",
+      "query": "When was the decision made to route VM traffic through a residential IP via Tailscale exit node?",
+      "category": "temporal",
+      "difficulty": "medium",
+      "expected_ids": [
+        "mem_09fb2a290522dd43"
+      ],
+      "recalled_ids": [
+        "mem_128c34668efad47c",
+        "mem_b2e937c49a3ac1d5",
+        "mem_7e1362cfc9748deb",
+        "mem_52686fb504f3a038",
+        "mem_09fb2a290522dd43"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_128c34668efad47c",
+          "score": 0.545455,
+          "snippet": "OpenClaw Linux VM on Azure is configured to egress via a residential IP by routing internet-bound traffic through a Tailscale exit node (default route via tailscale0)."
+        },
+        {
+          "id": "mem_b2e937c49a3ac1d5",
+          "score": 0.248485,
+          "snippet": "Work-decision-coach prompt template: Situation; Decision; Options A/B/C; Deadline; Reversible + rollback; Customer impact; Stakeholders (roles only: sponsor/blockers/approvers/gets blamed); Risks; Wha"
+        },
+        {
+          "id": "mem_7e1362cfc9748deb",
+          "score": 0.231685,
+          "snippet": "The \"chromeos-nissa\" Tailscale exit-node watchdog cron job is configured to alert when the node goes down and when it recovers."
+        },
+        {
+          "id": "mem_52686fb504f3a038",
+          "score": 0.229167,
+          "snippet": "Created skill 'work-decision-coach' (big-tech generic) to coach high-stakes work decisions with 80% execution + 20% politics literacy. Outputs: fastest safe move, 80/20 breakdown, stakeholder/incentiv"
+        },
+        {
+          "id": "mem_09fb2a290522dd43",
+          "score": 0.215018,
+          "snippet": "Team preference for Tailscale exit-node watchdog: run a deterministic health check and emit alerts only when the exit-node state changes (down\u2192up or up\u2192down), to avoid repeated notifications."
+        }
+      ],
+      "hits": [
+        "mem_09fb2a290522dd43"
+      ],
+      "misses": [],
+      "hit": true
+    },
+    {
+      "query_id": "q020",
+      "query": "What did we decide about using the NWS forecastGridData endpoint for snowfall?",
+      "category": "temporal",
+      "difficulty": "hard",
+      "expected_ids": [
+        "mem_15e404ef698a8c78"
+      ],
+      "recalled_ids": [
+        "mem_29db8f9c78de4168",
+        "mem_98a2804f94bae7fa",
+        "mem_4f2ac48b54a401d8",
+        "mem_f4988a465b60156f",
+        "mem_cc53868b4b16f56a"
+      ],
+      "recalled_snippets": [
+        {
+          "id": "mem_29db8f9c78de4168",
+          "score": 0.580303,
+          "snippet": "For weather forecasting, the team planned to use the NWS forecastGridData endpoint specifically to retrieve snowfallAmount for more accurate snowfall forecasts."
+        },
+        {
+          "id": "mem_98a2804f94bae7fa",
+          "score": 0.492075,
+          "snippet": "Weather updates were also pulled for Westchester near White Plains using NWS gridpoint OKX 39,51, including a Scarsdale point forecast for snowfall estimates."
+        },
+        {
+          "id": "mem_4f2ac48b54a401d8",
+          "score": 0.372594,
+          "snippet": "Product/ops: built and scheduled a daily 'high-signal AI digest' pipeline using sources from Reddit via public JSON endpoints with a filter/scoring step, then summarize top N items."
+        },
+        {
+          "id": "mem_f4988a465b60156f",
+          "score": 0.285671,
+          "snippet": "TEST: ClawBot can extract facts from session JSONL using smart_extractor.py sweep command"
+        },
+        {
+          "id": "mem_cc53868b4b16f56a",
+          "score": 0.26348,
+          "snippet": "Ops: implemented an NYC major weather alerts skill (`skills/weather-storm-alerts-nyc`) with a script `scripts/check_nws_alerts_nyc.py`, plus documentation `ops/docs/weather-storm-alerts-nyc.md`."
+        }
+      ],
+      "hits": [],
+      "misses": [
+        "mem_15e404ef698a8c78"
+      ],
+      "hit": false
+    }
+  ]
+}

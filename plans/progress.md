@@ -3,7 +3,29 @@
 # Project: Memory Recall Optimizer
 
 **Plan:** `plans/memory-recall-optimizer1.md`
-**Dev folder:** `~/Projects/oclaw_brain/oclaw_brain_skill_v1/` (source code) + `~/Projects/openclaw_vm/` (benchmark tools + data)
+**Dev folder:** `~/Projects/oclaw_brain/oclaw_brain_skill_v1/` (source code) + `~/Projects/oclaw-vm/` (benchmark tools + data)
+**Runtime:** Azure VM (`oclaw2026linux`) — all scripts run locally on the VM, not on Mac
+
+### Model Access (GPT-4.1-mini for LLM Judge)
+
+| Property | Value |
+|----------|-------|
+| Endpoint | `http://127.0.0.1:18791/v1` (Foundry MI proxy) |
+| SDK | OpenAI Python SDK (`openai` package) |
+| Auth | `api_key="LOCAL"` (dummy — proxy handles MI auth) |
+| Model name | `gpt-4.1-mini` (bare name, no `foundry/` prefix) |
+| Existing venvs with `openai` | `~/Projects/ai-test/.venv` (v2.24.0), `~/Projects/AI-Experiments-II/.venv` (v2.28.0) |
+
+**Usage pattern:**
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://127.0.0.1:18791/v1", api_key="LOCAL")
+response = client.chat.completions.create(
+    model="gpt-4.1-mini",
+    messages=[{"role": "user", "content": prompt}],
+    temperature=0.0,
+)
+```
 
 ---
 
@@ -103,8 +125,8 @@ Substeps are checkboxes (`- [ ]`) under a step. They are atomic actions.
 | Phase | Status |
 |-------|--------|
 | Phase 0 — Architecture | SKIP — documented in MEMORY-CI-LOOP.PRD |
-| Round 1 — Baseline Measurement | NOT STARTED |
-| Round 2 — RRF Fusion | NOT STARTED |
+| Round 1 — Baseline Measurement | COMPLETE |
+| Round 2 — RRF Fusion | COMPLETE |
 | Round 3 — Query Quality Bundle | NOT STARTED |
 | Round 4 — Embed/Scoring Quality | NOT STARTED |
 | Round 5 — Full Benchmark (conditional) | NOT STARTED — only if stop gate not met after Round 4 |
@@ -129,7 +151,10 @@ Substeps are checkboxes (`- [ ]`) under a step. They are atomic actions.
 
 | Type | Description | Resolution |
 |------|-------------|------------|
-| _(none yet)_ | | |
+| Model access | GPT-4.1-mini Foundry proxy returns 401 on dev-sandbox VM (not oclaw) | Use rule-based judge; re-run with LLM when oclaw VM is up |
+| Runtime env | Running on dev-sandbox-jeff-vm-1, not oclaw or Mac. Memory DB from mem-source-code/clawbot-memory.db.gz (68 active) | Scripts use ~/Projects/ai-test/.venv/bin/python3 |
+| Baseline | P@5=0.800, MRR=0.704, Relevance=4.15, Noise=3.05, Weighted=3.88 | Noise (3.05) is primary improvement target — too many irrelevant results in top 5 |
+| RRF Results | P@5=0.900, MRR=0.785, Relevance=4.45, Noise=4.25, Weighted=4.40 | +0.525 weighted, noise +1.2 — already exceeds stop gate targets |
 
 ---
 
@@ -264,11 +289,11 @@ _(Log new issues here as they arise.)_
 > **Launch condition:** Round 1 complete (baseline numbers exist).
 > **File ownership:** Agent modifies `smart_extractor.py` (`cmd_recall()` + new `rrf_fuse()` function).
 
-- [ ] Add `rrf_fuse(query_results, k=10)` function to `smart_extractor.py`
-- [ ] Replace dedup+priority sort block in `cmd_recall()` with RRF fusion call
-- [ ] Collect per-query results as separate lists before fusing
-- [ ] Use tag priority as tiebreaker in RRF sort
-- [ ] **Verify:** `python3 -c "from smart_extractor import rrf_fuse; print('import ok')"` — no import error
+- [x] Add `rrf_fuse(query_results, k=10)` function to `smart_extractor.py`
+- [x] Replace dedup+priority sort block in `cmd_recall()` with RRF fusion call
+- [x] Collect per-query results as separate lists before fusing
+- [x] Use tag priority as tiebreaker in RRF sort
+- [x] **Verify:** syntax ok + functional test passes (b ranks first when in both lists)
 
 ---
 
@@ -277,9 +302,9 @@ _(Log new issues here as they arise.)_
 > **Launch condition:** Step 1 complete.
 > **File ownership:** Agent writes `quality/data/round2-results.json` and `quality/data/round2-scores.json`.
 
-- [ ] Run: `python3 quality/recall/run_benchmark.py --benchmark quality/data/recall_benchmark.json --db ~/.agent-memory/memory.db --output quality/data/round2-results.json`
-- [ ] Run: `python3 quality/recall/judge_recall.py --input quality/data/round2-results.json --dimensions relevance,noise --model gpt-4.1-mini --output quality/data/round2-scores.json`
-- [ ] **Verify:** `test -f quality/data/round2-scores.json && echo "scores exist"`
+- [x] Run: benchmark with `--mode rrf` → `quality/data/round2-results.json` (18/20 hits, 90%)
+- [x] Run: judge → `quality/data/round2-scores.json` (40 scores, rule-based)
+- [x] **Verify:** scores exist ✓
 
 ---
 
@@ -288,10 +313,10 @@ _(Log new issues here as they arise.)_
 > **Launch condition:** Step 2 complete.
 > **File ownership:** Agent reads score files, documents deltas in this progress.md.
 
-- [ ] Run: `python3 quality/recall/regression_gate.py --before quality/data/round1-scores.json --after quality/data/round2-scores.json`
-- [ ] Document delta for Precision@5, MRR, weighted score (expected: +8-10%)
-- [ ] Confirm no regression (delta >= -0.05 on all metrics)
-- [ ] **Verify:** Regression gate passes (all metrics above thresholds)
+- [x] Run: regression gate — all metrics improved, PASS
+- [x] Document delta: P@5 +0.100, MRR +0.081, Relevance +0.30, Noise +1.20, Weighted +0.525
+- [x] Confirm no regression — all deltas positive ✓
+- [x] **Verify:** Regression gate passes ✓
 
 #### Success Criteria (Round 2)
 
