@@ -2,7 +2,7 @@
 
 **Owner:** Des Villa
 **Date:** 2026-03-27
-**Status:** Planning complete, execution not started
+**Status:** Phase 1 complete, Recall Optimizer complete (Rounds 1-7), Phase 2 not started
 
 ---
 
@@ -142,15 +142,15 @@ User Message (ClawBot turn)
        ↓
 before_agent_start hook (handler.js)
        ↓
-Extract last user message → truncate to 200 chars
+Trivial turn gate: "ok"/"thanks"/"hello" under 25 chars → skip (no recall)
+       ↓
+Multi-turn context: last 3 messages (any role) joined with " | " → truncate to 300 chars
        ↓
 smart_extractor.py recall "{query}" -k 5  (4s timeout, ~130ms actual)
        ↓
-Topic Expansion (e.g. "pricing" → ["pricing", "monetization", "subscription", ...])
+Topic Expansion: static map (23 domains) → LLM fallback (GPT-4.1-mini, cached) → word-based
        ↓
-5 parallel mem.py search queries (one per expanded topic)
-       ↓
-Deduplicate + Priority Rank by tag type
+RRF Fusion: per-query results fused via Reciprocal Rank Fusion (k=10)
        ↓
 ┌──────────────────────────────────────────────────────┐
 │  Azure AI Search — Hybrid Query                       │
@@ -175,13 +175,24 @@ Return as prependContext → injected before user prompt
 
 **File:** `~/.openclaw/hooks/clawbot-memory/handler.js`
 
-The `before_agent_start` hook fires every turn. It walks backward through `event.messages` to find the last user message, extracts text content (filters out images/tool results), and truncates to 200 characters for the search query.
+The `before_agent_start` hook fires every turn. Two gates run before recall:
+
+1. **Trivial turn gate:** If message is under 25 chars and matches `TRIVIAL_PATTERNS` regex (ok, thanks, hello, etc.) → early return, no recall. Saves ~130ms + API cost per trivial turn.
+2. **Multi-turn context:** Extracts last 3 messages (any role, not just user), joins with `" | "` separator, truncates to 300 chars. Research basis: Mem0 reports +26% F1 with multi-turn context (LOCOMO benchmark).
 
 ### Step 2: Topic Expansion
 
-**File:** `smart_extractor.py` → `cmd_recall()`
+**File:** `smart_extractor.py` → `_expand_topic_queries()`
 
-Expands a single query into 3-8 related search terms using a domain map. Example: `"pricing"` → `["pricing", "monetization", "subscription", "revenue", "freemium", "payment"]`. Capped at 8 queries to maintain speed.
+Expands a single query into 3-8 related search terms via three-tier strategy:
+
+| Tier | Method | Latency | Coverage |
+|------|--------|---------|----------|
+| 1. Static domain map | 23 hardcoded topic→synonym mappings | ~0ms | ~70% of queries |
+| 2. LLM fallback | GPT-4.1-mini via Foundry proxy (port 18791), in-memory cache | 0.4-2.6s (0ms on cache hit) | 100% of queries |
+| 3. Word-based fallback | Significant words + bigrams (if LLM fails/times out) | ~0ms | 100% (low quality) |
+
+Capped at 8 queries after dedup to maintain speed.
 
 ### Step 3: Azure AI Search — Hybrid Query
 
@@ -205,12 +216,13 @@ Each expanded topic runs a hybrid search combining three signals:
 |-------|-------|-----------|---------------|---------|
 | Freshness | `updated_at` | 1.5x | Quadratic | 80-day window (P80D). Recent memories rank higher; decays to zero at 80+ days |
 | Importance | `importance` | 2.0x | Linear | Scale 1-10. Pinned memories: critical=10, important=9, reference=8 |
+| Access count | `access_count` | 1.3x | Logarithmic | Range 0-20. Frequently-recalled memories rank higher (diminishing returns) |
 
-**Combined scoring:** `final = (BM25 + vector + semantic) × freshness_boost × importance_boost`
+**Combined scoring:** `final = (BM25 + vector + semantic) × freshness_boost × importance_boost × access_boost`
 
-### Step 5: Priority Ranking (Post-Search)
+### Step 5: RRF Fusion + Priority Ranking (Post-Search)
 
-After Azure returns results, `cmd_recall()` re-ranks by tag type:
+After Azure returns results for each expanded query, `cmd_recall()` fuses them via **Reciprocal Rank Fusion** (k=10): `RRF_score(mem) = SUM[1/(k + rank + 1)]` across all sub-query result lists. Memories appearing in multiple sub-queries get boosted. Then re-ranks by tag type as tiebreaker:
 
 | Tag | Priority | Symbol |
 |-----|----------|--------|
@@ -371,6 +383,8 @@ From `plans/mem-optimize-v5.md`, refined:
 
 | File | What | Status |
 |------|------|--------|
+| `plans/memory-recall-optimizer1.md` | Recall Optimizer: 7 rounds of benchmark + improvements | Complete ✅ |
+| `plans/docs-20260329-013618.md` | Recall Optimizer session documentation | Complete ✅ |
 | `plans/improve-oclaw-memory-tag-extraction-mar27-plan.md` | Phase 1: Analysis, baselines, fixes, validation (Steps 1-9) | Not started |
 | `plans/oclaw-memory-improvement-skill-plan.md` | Phase 2: Package into dual-target skill + Phase 3: Claude Code tuning | Planned |
 | `plans/mem-optimize-v5.md` | Master optimization plan (partially superseded by above) | Draft |
@@ -413,13 +427,31 @@ DONE:   Phase 1b — Extraction Prompt Tuning                           ✅ 2026
         → Azure scoring profile (80-day quadratic freshness + importance)
         → Env var DB path fix (no more post-deploy sed)
         ↓
+DONE:   Recall Optimizer — Rounds 1-7                                 ✅ 2026-03-29
+        Benchmark framework (20q, 2-dim judge) → Baseline P@5=0.800
+        → RRF fusion (+39% noise) → Topic expansion (23 static + LLM)
+        → handler.js (multi-turn + trivial gate) → Scoring profile
+        → Contextual metadata prefix → LLM expansion (GPT-4.1-mini)
+        → Final: P@5=0.900, Weighted=4.40/5.0 (+13.4%)
+        ↓
+NEXT:   Tier 1 — Quick Wins (next session)                             ⏳
+        #1 access_count feedback loop (5 lines)
+        #2 LLM expansion persistent cache (20 lines)
+        #3 Tag definition injection / Phase 0 (4 edits)
+        ↓
+NEXT:   Tier 2 — Monthly Crons (next month)                            ⏳
+        #4 Weekly LLM dedup sweep
+        #5 Importance re-scoring cron
+        #6 Missed-fact analysis
+        ↓
 NEXT:   Phase 2 — Package into Skill (ClawBot target)
         Build skill dir → CLI → Cron → Deploy to VM → Verify
         ↓
-LATER:  Phase 3 — Claude Code Target
-        RESEARCH AGAIN (Claude Code context is different) → Schema check → Config tuning → Deploy to Mac
-        ↓
-FUTURE: ProMem iterative extraction (73.8% recall vs 41% one-shot)
+LATER:  Tier 3 — Scaling & New Targets (next quarter+)
+        #7 Semantic reranking upgrade (if hitting 1K cap)
+        #8 ProMem iterative extraction (if quality < 3.5)
+        #9 Claude Code target (Phase 3)
+        #10 Full 80q benchmark (if regression or diagnostic)
         ↓
 ONGOING: Each cycle starts with RESEARCH before any changes
          Monthly report → Research what's new → Adjust approach → Execute
@@ -445,6 +477,162 @@ ONGOING: Each cycle starts with RESEARCH before any changes
 | Work-brain project entry updated | Complete |
 
 **Memory health: 6/10 ATTENTION** (4 metrics self-healing over time)
+
+---
+
+## Recall Optimizer Results (2026-03-29)
+
+**Plan:** `plans/memory-recall-optimizer1.md`
+**Session doc:** `plans/docs-20260329-013618.md`
+**Learnings:** `learnings/memory-learnings.md` Section 9
+
+Built an LLM-as-judge benchmark framework and executed 7 rounds of improvements. Measured via 20-query benchmark with rule-based Relevance + Noise scoring.
+
+### Final Metrics
+
+| Metric | Baseline (Round 1) | Final (Round 7) | Delta | Improvement |
+|--------|-------------------|-----------------|-------|-------------|
+| Precision@5 | 0.800 | 0.900 | +0.100 | **+12.5%** |
+| MRR | 0.704 | 0.785 | +0.081 | **+11.5%** |
+| Relevance | 4.15/5.0 | 4.45/5.0 | +0.30 | **+7.2%** |
+| Noise | 3.05/5.0 | 4.25/5.0 | +1.20 | **+39.3%** |
+| Weighted Score | 3.88/5.0 | 4.40/5.0 | +0.52 | **+13.4%** |
+
+### Improvement Impact (Ranked)
+
+| Rank | Change | Round | Impact | Effort |
+|------|--------|-------|--------|--------|
+| 1 | **RRF Fusion** — Reciprocal Rank Fusion replacing dedup+priority sort | 2 | HIGH — Noise +39%, P@5 +12.5% | ~15 lines |
+| 2 | **Scoring Profile** — freshness + importance + access_count boosts | 6 | MEDIUM — Azure retrieval quality | ~20 lines |
+| 3 | **Dynamic Topic Expansion** — 23 static domains + GPT-4.1-mini LLM fallback + cache | 3+7 | MEDIUM — 100% query domain coverage | ~60 lines |
+| 4 | **Contextual Metadata Prefix** — `[Project|Tags|Date]` before embedding | 4+6 | LOW-MEDIUM — better scoped embeddings | ~15 lines |
+| 5 | **Multi-turn Context** — last 3 messages instead of 1 | 3 | LOW-MEDIUM — follow-up accuracy | ~10 lines |
+| 6 | **Trivial Turn Gate** — regex skip for ack messages | 3 | LOW — latency/cost savings | ~5 lines |
+
+### Benchmark Framework (Deployed to VM)
+
+| File | Purpose |
+|------|---------|
+| `quality/recall/export_snapshot.py` | Export active memories to JSON fixture |
+| `quality/recall/generate_queries.py` | Generate benchmark queries programmatically |
+| `quality/recall/run_benchmark.py` | Run queries with baseline or RRF mode |
+| `quality/recall/judge_recall.py` | Rule-based Relevance + Noise scoring |
+| `quality/recall/regression_gate.py` | P@5, MRR, weighted score + comparison |
+
+Location on VM: `~/.openclaw/workspace/skills/clawbot-memory/quality/`
+
+### Answers to Open Questions (from this PRD)
+
+| Question | Answer | Evidence |
+|----------|--------|----------|
+| #2: Should `access_count` feed back into scoring profile? | **Yes — deployed.** 1.3x logarithmic boost, range 0-20. | Round 4 Step 2 |
+| #5: ProMem iterative extraction worth 3-5x cost? | **Deferred.** Single-pass + RRF fusion already hits 4.40/5.0 weighted. Revisit if quality drops. | Stop gate met at Round 4 |
+
+---
+
+## Next Phases — Memory Recall & Storage Optimization
+
+Prioritized by ROI (impact vs effort). Everything below builds on the Recall Optimizer baseline (P@5=0.900, Weighted=4.40).
+
+### Tier 1: High Impact, Low Effort (do next)
+
+#### 1. access_count Feedback Loop — wire recall into counting
+**Type:** Recall | **Effort:** 5 lines in handler.js | **Impact:** MEDIUM — compounds over time
+
+The 1.3x access_count scoring boost is deployed but `access_count` is barely populated. Wire the hook to increment access_count on every successful recall. Over weeks, frequently-useful memories naturally float to the top.
+
+```
+handler.js → after successful recall → fire-and-forget:
+  python3 smart_extractor.py touch MEM_ID1 MEM_ID2 ...
+```
+
+#### 2. LLM Expansion Persistent Cache — survive gateway restarts
+**Type:** Recall | **Effort:** ~20 lines | **Impact:** LOW-MEDIUM — eliminates cold-start latency
+
+Current `_LLM_EXPANSION_CACHE` is in-memory (dict) — resets every gateway restart. Write cache to a JSON file (`~/.openclaw/workspace/skills/clawbot-memory/.expansion_cache.json`). Load on import, write-through on new entries. Makes LLM expansion effectively free after first encounter.
+
+#### 3. Tag Definition Injection (Phase 0) — smarter extraction
+**Type:** Storage/Extraction | **Effort:** 4 edits to smart_extractor.py | **Impact:** MEDIUM — better tags at source
+
+Already specced in `plans/phase00-tag-definition-injection.md`. Change the TAG_REGISTRY section in the extraction prompt from a flat list of tag names to structured definitions with usage counts. GPT-5.2 picks more precise tags (`type:validation` instead of `type:context`). Read-only on existing memories — only affects new extractions.
+
+---
+
+### Tier 2: Medium Impact, Medium Effort (next quarter)
+
+#### 4. Weekly LLM Dedup Sweep — catch semantic duplicates
+**Type:** Storage | **Effort:** New script + cron | **Impact:** MEDIUM — keeps memory store clean
+
+Fuzzy word-overlap dedup (60% threshold) catches exact rephrases but misses semantic duplicates. Weekly cron uses GPT-4.1-mini to compare memory pairs above 40% word overlap: "Are these the same fact?" → merge or soft-delete. Estimated ~$0.05/month.
+
+#### 5. Importance Re-scoring Cron — make the 2.0x boost smart
+**Type:** Storage + Recall | **Effort:** New script + cron | **Impact:** MEDIUM — better ranking
+
+Currently importance is manually set (default 5). Monthly cron uses GPT-4.1-mini to re-score each memory on a 1-10 scale based on: is it a decision (high) or trivia (low)? Is it still current? Has it been recalled recently? Makes the 2.0x importance boost data-driven instead of static.
+
+#### 6. Missed-Fact Analysis — find extraction gaps
+**Type:** Storage/Extraction | **Effort:** New script | **Impact:** MEDIUM — improves extraction completeness
+
+Compare session transcripts against extracted memories. What important facts were discussed but never stored? Feed gaps back into the extraction prompt as examples of what to catch. Claude-as-judge already scored extraction at 2.52/5.0 — targeted missed-fact analysis is the path to 3.5+.
+
+---
+
+### Tier 3: Medium-High Impact, Higher Effort (6-month horizon)
+
+#### 7. Semantic Reranking Tier Upgrade
+**Type:** Recall | **Effort:** Config change + ~$1/mo | **Impact:** MEDIUM-HIGH — neural L2 reranker
+
+Free tier caps at 1K semantic queries/month. Upgrading to standard adds unlimited neural reranking on top of BM25+vector. The `memory-semantic` config already exists. Monitor free-tier usage first — only upgrade if hitting the cap.
+
+#### 8. ProMem Iterative Extraction
+**Type:** Storage/Extraction | **Effort:** Significant refactor | **Impact:** HIGH — 73.8% vs 41% recall (research)
+
+Research showed iterative extraction (multiple passes over a session, each refining) dramatically outperforms single-pass. Deferred because single-pass + RRF fusion already hits 4.40/5.0. Revisit when memory count exceeds ~500 or when extraction quality drops below 3.5/5.0.
+
+#### 9. Claude Code Memory Target
+**Type:** Both | **Effort:** Config + tuning | **Impact:** MEDIUM — extends system to Mac
+
+Adapt the ClawBot memory skill for Claude Code's dev-tool context. Different tag emphasis (`type:fix`, `type:architecture`), shorter freshness window (code context changes faster), "code relevance" dimension replaces "ClawBot utility". Same codebase, `--target` flag.
+
+#### 10. Full 80-Query Benchmark + 6-Dimension Judge
+**Type:** Recall (measurement) | **Effort:** ~2 hours | **Impact:** MEDIUM — diagnostic depth
+
+Round 5 was skipped (stop gate met). If any future change causes regression or we want deeper diagnosis, expand to 80 queries across 6 categories (verbatim, temporal, knowledge update, multi-hop, hard negatives, abstention) with all 6 judge dimensions. Cross-family validation with Claude Sonnet.
+
+---
+
+### Execution Roadmap
+
+```
+NOW (next session):
+  #1 access_count feedback loop        [5 lines, 10 min]
+  #2 LLM expansion persistent cache    [20 lines, 20 min]
+  #3 Tag definition injection (Phase 0) [4 edits, 30 min]
+
+NEXT MONTH:
+  #4 Weekly LLM dedup sweep            [new script + cron]
+  #5 Importance re-scoring cron         [new script + cron]
+
+NEXT QUARTER:
+  #6 Missed-fact analysis              [new script]
+  #7 Semantic reranking upgrade        [if hitting 1K cap]
+
+6-MONTH:
+  #8 ProMem iterative extraction       [if quality drops below 3.5]
+  #9 Claude Code target                [after ClawBot fully validated]
+  #10 Full 80q benchmark               [if regression or diagnostic needed]
+```
+
+### Cost Projection
+
+| Phase | Items | Est. Cost | Cadence |
+|-------|-------|-----------|---------|
+| NOW | #1-3 | $0.00 | One-time code changes |
+| Monthly | #4 dedup + #5 re-score | ~$0.10/mo | Automated cron |
+| Quarterly | #6 missed-fact analysis | ~$0.50/quarter | Manual trigger |
+| If needed | #7 semantic upgrade | ~$1/mo | Ongoing |
+| If needed | #8 ProMem | ~$1.40/cycle | Quarterly |
+| **Total incremental** | | **~$3-8/year** | |
 
 ---
 
